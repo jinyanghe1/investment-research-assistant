@@ -381,6 +381,154 @@ def fetch_commodity(commodity: str = "all") -> dict:
     return _return_list_or_single(results, f"未找到商品 '{commodity}' 的数据，请检查名称是否正确")
 
 
+@handle_errors
+def fetch_etf_realtime(symbol: str, market: str = "A") -> dict:
+    """获取ETF实时行情数据。"""
+    market = market.upper()
+    if market != "A":
+        return {"error": f"ETF实时数据暂仅支持A股市场，不支持 {market}"}
+    if ak is None:
+        return {"error": "akshare 未安装，无法获取ETF数据"}
+
+    df = ak.fund_etf_spot_em()
+    if df is None or df.empty:
+        return {"error": "未获取到ETF行情数据"}
+
+    row = df[df["代码"] == symbol]
+    if row.empty:
+        return {"error": f"未找到ETF代码 {symbol}，请检查代码是否正确"}
+
+    r = row.iloc[0]
+    return {
+        "代码": str(r.get("代码", symbol)),
+        "名称": str(r.get("名称", "")),
+        "现价": _round2(r.get("最新价")),
+        "涨跌幅(%)": _round2(r.get("涨跌幅")),
+        "成交量(手)": _round2(r.get("成交量")),
+        "成交额(元)": _round2(r.get("成交额")),
+        "净值": _round2(r.get("最新净值", r.get("基金净值"))),
+        "溢价率(%)": _round2(r.get("折价率", r.get("溢价率"))),
+        "今开": _round2(r.get("今开")),
+        "最高": _round2(r.get("最高")),
+        "最低": _round2(r.get("最低")),
+        "昨收": _round2(r.get("昨收")),
+        "market": "A",
+    }
+
+
+@handle_errors
+def fetch_etf_history(symbol: str, period: str = "daily",
+                      start_date: str = None, end_date: str = None) -> dict:
+    """获取ETF历史K线数据。"""
+    if ak is None:
+        return {"error": "akshare 未安装，无法获取ETF历史数据"}
+
+    period_map = {"daily": "daily", "weekly": "weekly", "monthly": "monthly"}
+    ak_period = period_map.get(period, "daily")
+
+    if end_date is None:
+        end_date = datetime.now().strftime("%Y%m%d")
+    else:
+        end_date = end_date.replace("-", "")
+    if start_date is None:
+        start_date = (datetime.now() - timedelta(days=180)).strftime("%Y%m%d")
+    else:
+        start_date = start_date.replace("-", "")
+
+    df = ak.fund_etf_hist_em(
+        symbol=symbol, period=ak_period,
+        start_date=start_date, end_date=end_date, adjust="qfq",
+    )
+    if df is None or df.empty:
+        return {"error": f"未找到ETF {symbol} 的历史数据"}
+
+    max_rows = config.max_records
+    df = df.tail(max_rows)
+    records = []
+    for _, r in df.iterrows():
+        records.append({
+            "日期": _date_str(r.get("日期")),
+            "开盘": _round2(r.get("开盘")),
+            "最高": _round2(r.get("最高")),
+            "最低": _round2(r.get("最低")),
+            "收盘": _round2(r.get("收盘")),
+            "成交量": _round2(r.get("成交量")),
+            "成交额": _round2(r.get("成交额")),
+        })
+    return {
+        "meta": {"代码": symbol, "周期": period, "数据条数": len(records)},
+        "data": records,
+    }
+
+
+@handle_errors
+def fetch_convertible_bond(symbol: str = None) -> dict:
+    """获取可转债数据。"""
+    if ak is None:
+        return {"error": "akshare 未安装，无法获取可转债数据"}
+
+    try:
+        df = ak.bond_cb_jsl()
+    except Exception:
+        try:
+            df = ak.bond_zh_cov_value_analysis()
+        except Exception as e:
+            return {"error": f"获取可转债数据失败: {str(e)}"}
+
+    if df is None or df.empty:
+        return {"error": "未获取到可转债数据"}
+
+    # 标准化列名映射（集思录数据列名可能不同版本有差异）
+    col_map = {}
+    for col in df.columns:
+        col_lower = str(col).lower()
+        if "代码" in col or "bond_id" in col_lower:
+            col_map["code"] = col
+        elif "名称" in col or "bond_nm" in col_lower:
+            col_map["name"] = col
+        elif "现价" in col or "price" in col_lower:
+            col_map["price"] = col
+        elif "转股价" in col or "convert_price" in col_lower or "转股价格" in col:
+            col_map["conversion_price"] = col
+        elif "转股价值" in col or "convert_value" in col_lower:
+            col_map["conversion_value"] = col
+        elif "溢价率" in col or "premium" in col_lower:
+            col_map["premium_rate"] = col
+        elif "到期收益率" in col or "ytm" in col_lower:
+            col_map["ytm"] = col
+        elif "信用" in col or "rating" in col_lower:
+            col_map["credit_rating"] = col
+        elif "剩余" in col or "remain" in col_lower:
+            col_map["remaining_years"] = col
+
+    if symbol is not None:
+        code_col = col_map.get("code", df.columns[0])
+        row = df[df[code_col].astype(str) == str(symbol)]
+        if row.empty:
+            return {"error": f"未找到可转债代码 {symbol}"}
+        r = row.iloc[0]
+        return {
+            "代码": str(r.get(col_map.get("code", ""), symbol)),
+            "名称": str(r.get(col_map.get("name", ""), "")),
+            "现价": _round2(r.get(col_map.get("price", ""))),
+            "转股价": _round2(r.get(col_map.get("conversion_price", ""))),
+            "转股价值": _round2(r.get(col_map.get("conversion_value", ""))),
+            "溢价率(%)": _round2(r.get(col_map.get("premium_rate", ""))),
+            "到期收益率(%)": _round2(r.get(col_map.get("ytm", ""))),
+            "信用评级": str(r.get(col_map.get("credit_rating", ""), "")),
+            "剩余年限": _round2(r.get(col_map.get("remaining_years", ""))),
+        }
+
+    # 返回全部，按溢价率排序
+    premium_col = col_map.get("premium_rate")
+    if premium_col and premium_col in df.columns:
+        df = df.sort_values(by=premium_col, ascending=True)
+
+    max_rows = config.max_records
+    records = _df_to_records(df.head(max_rows))
+    return {"data": records, "count": len(records)}
+
+
 # ===================================================================
 # 注册入口（薄包装器）
 # ===================================================================
@@ -452,3 +600,45 @@ def register_tools(mcp):
             包含品种名称、最新价、涨跌幅、单位的字典或列表。
         """
         return fetch_commodity(commodity)
+
+    @mcp.tool
+    def get_etf_realtime(symbol: str, market: str = "A") -> dict:
+        """获取ETF实时行情数据。
+
+        Args:
+            symbol: ETF代码，如 "510300"（沪深300ETF）、"159919"（创业板ETF）。
+            market: 市场代码，目前仅支持 "A"（A股）。默认 "A"。
+
+        Returns:
+            包含代码、名称、现价、涨跌幅、成交量、净值、溢价率等字段的字典。
+        """
+        return fetch_etf_realtime(symbol, market)
+
+    @mcp.tool
+    def get_etf_history(symbol: str, period: str = "daily",
+                        start_date: str = None, end_date: str = None) -> dict:
+        """获取ETF历史K线数据。
+
+        Args:
+            symbol: ETF代码，如 "510300"。
+            period: K线周期。daily=日线, weekly=周线, monthly=月线。默认 "daily"。
+            start_date: 起始日期，格式 "YYYYMMDD" 或 "YYYY-MM-DD"，默认近180天。
+            end_date: 结束日期，格式同上，默认今天。
+
+        Returns:
+            包含 meta 信息和 data 列表（日期、开盘、最高、最低、收盘、成交量、成交额）的字典。
+        """
+        return fetch_etf_history(symbol, period, start_date, end_date)
+
+    @mcp.tool
+    def get_convertible_bond(symbol: str = None) -> dict:
+        """获取可转债数据。
+
+        Args:
+            symbol: 可转债代码，如 "127045"。不传则返回全部可转债（按溢价率排序）。
+
+        Returns:
+            单只可转债返回包含代码、名称、现价、转股价、转股价值、溢价率、到期收益率、
+            信用评级、剩余年限的字典；全部则返回列表。
+        """
+        return fetch_convertible_bond(symbol)

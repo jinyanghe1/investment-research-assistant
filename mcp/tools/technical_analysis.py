@@ -448,24 +448,44 @@ def fetch_technical_signal(symbol: str, market: str = "A") -> dict:
     else:
         signals["VOLUME"] = {"signal": "NEUTRAL", "detail": "无成交量数据"}
 
-    # --- 综合信号 ---
-    buy_count = sum(1 for s in signals.values() if s["signal"] == "BUY")
-    sell_count = sum(1 for s in signals.values() if s["signal"] == "SELL")
-    total = len(signals)
+    # --- 综合信号（加权评分） ---
+    SIGNAL_WEIGHTS = {
+        "MACD": 0.25,       # 趋势可靠性最高
+        "MA_CROSS": 0.20,   # 趋势确认
+        "RSI": 0.20,        # 动量/均值回归
+        "BOLL": 0.15,       # 波动率/突破
+        "KDJ": 0.10,        # 辅助动量
+        "VOLUME": 0.10,     # 量价确认
+    }
 
-    if buy_count >= 4:
+    weighted_score = 0.0
+    for name, sig in signals.items():
+        weight = SIGNAL_WEIGHTS.get(name, 0.1)
+        if sig["signal"] == "BUY":
+            weighted_score += weight
+        elif sig["signal"] == "SELL":
+            weighted_score -= weight
+
+    if weighted_score >= 0.35:
         overall = "BUY"
-    elif sell_count >= 4:
+    elif weighted_score <= -0.35:
         overall = "SELL"
     else:
         overall = "NEUTRAL"
 
-    confidence = _round(max(buy_count, sell_count) / total if total > 0 else 0, 2)
+    confidence = _round(min(abs(weighted_score) / 1.0, 1.0), 2)
+
+    buy_count = sum(1 for s in signals.values() if s["signal"] == "BUY")
+    sell_count = sum(1 for s in signals.values() if s["signal"] == "SELL")
+    total = len(signals)
 
     # 生成中文总结
     signal_cn = {"BUY": "看多", "SELL": "看空", "NEUTRAL": "中性"}
     summary_parts = [f"技术面综合评价: {signal_cn[overall]}"]
-    summary_parts.append(f"（{buy_count}项看多, {sell_count}项看空, {total - buy_count - sell_count}项中性, 置信度{confidence:.0%}）。")
+    summary_parts.append(
+        f"（加权得分{weighted_score:+.2f}, {buy_count}项看多, {sell_count}项看空, "
+        f"{total - buy_count - sell_count}项中性, 置信度{confidence:.0%}）。"
+    )
 
     key_signals = []
     for name, sig in signals.items():
@@ -482,6 +502,7 @@ def fetch_technical_signal(symbol: str, market: str = "A") -> dict:
         "date": latest_date,
         "overall_signal": overall,
         "confidence": confidence,
+        "weighted_score": _round(weighted_score, 4),
         "signals": signals,
         "summary": "".join(summary_parts),
         "price": _round(latest_close, 2),

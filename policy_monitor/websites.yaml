@@ -1,0 +1,219 @@
+# 政策监控网站清单
+# 用于Layer 2定向爬虫
+
+domestic:
+  # P0级 - 实时监控
+  central_p0:
+    - name: "国务院政策文件库"
+      url: "http://www.gov.cn/zhengce/zhengceku/"
+      rss: "http://www.gov.cn/zhengce/zhengceku/rss.htm"
+      xpath: "//div[@class='news_list']/ul/li"
+      link_prefix: "http://www.gov.cn"
+      check_interval: 300
+      priority: 0
+      
+    - name: "央行货币政策"
+      url: "http://www.pbc.gov.cn/zhengcehuobisi/11111/index.html"
+      rss: "http://www.pbc.gov.cn/zhengcehuobisi/rss.xml"
+      xpath: "//table[@class='table']//tr[position()>1]"
+      link_prefix: "http://www.pbc.gov.cn"
+      check_interval: 300
+      priority: 0
+      keywords: ["利率", "准备金", "MLF", "LPR", "逆回购"]
+      
+    - name: "证监会新闻发布"
+      url: "http://www.csrc.gov.cn/csrc/c100028/common_list.shtml"
+      xpath: "//div[@class='row']/div[@class='col-md-12']//li"
+      link_prefix: "http://www.csrc.gov.cn"
+      check_interval: 300
+      priority: 0
+      keywords: ["IPO", "发行", "上市", "退市", "并购重组"]
+  
+  # P1级 - 每小时监控
+  central_p1:
+    - name: "发改委政策发布"
+      url: "https://www.ndrc.gov.cn/xxgk/zcfb/"
+      xpath: "//div[@class='tzgg-list']/ul/li"
+      link_prefix: "https://www.ndrc.gov.cn"
+      check_interval: 1800
+      priority: 1
+      keywords: ["产业", "投资", "价格", "项目"]
+      
+    - name: "财政部政策"
+      url: "http://www.mof.gov.cn/zhengwuxinxi/zhengcefabu/"
+      xpath: "//div[@class='list_cont']/ul/li"
+      link_prefix: "http://www.mof.gov.cn"
+      check_interval: 1800
+      priority: 1
+      keywords: ["财政", "税收", "预算", "国债"]
+      
+    - name: "工信部政策"
+      url: "https://www.miit.gov.cn/zwgk/zcwj/wjfb/tzgg/"
+      xpath: "//div[@class='list']/ul/li"
+      link_prefix: "https://www.miit.gov.cn"
+      check_interval: 3600
+      priority: 1
+      keywords: ["产业", "制造", "数字", "技术"]
+      
+    - name: "税务总局"
+      url: "https://www.chinatax.gov.cn/chinatax/n810341/n810825/"
+      xpath: "//div[@class='list']/ul/li"
+      link_prefix: "https://www.chinatax.gov.cn"
+      check_interval: 3600
+      priority: 1
+      keywords: ["税收", "优惠", "减免"]
+      
+    - name: "商务部"
+      url: "http://www.mofcom.gov.cn/article/b/"
+      xpath: "//div[@class='list-warp']/ul/li"
+      link_prefix: "http://www.mofcom.gov.cn"
+      check_interval: 3600
+      priority: 1
+      keywords: ["贸易", "外资", "消费"]
+      
+    - name: "住建部"
+      url: "https://www.mohurd.gov.cn/gongkai/zhengce/zcwj/"
+      xpath: "//div[@class='list']//li"
+      link_prefix: "https://www.mohurd.gov.cn"
+      check_interval: 3600
+      priority: 1
+      keywords: ["房地产", "住房", "城建"]
+  
+  # 地方政策
+  local:
+    - name: "上海市政府"
+      url: "https://www.shanghai.gov.cn/nw12344/"
+      api: "https://data.sh.gov.cn/api/v1/datasets"
+      xpath: "//div[@class='news-list']/ul/li"
+      check_interval: 3600
+      priority: 2
+      
+    - name: "北京市政府"
+      url: "https://www.beijing.gov.cn/zhengce/zhengcefagui/"
+      xpath: "//div[@class='list']/ul/li"
+      link_prefix: "https://www.beijing.gov.cn"
+      check_interval: 3600
+      priority: 2
+      
+    - name: "广东省政府"
+      url: "https://www.gd.gov.cn/zwgk/wjk/qbwj/yfb/content/list"
+      xpath: "//div[@class='list-con']/ul/li"
+      link_prefix: "https://www.gd.gov.cn"
+      check_interval: 3600
+      priority: 2
+      
+    - name: "深圳市政府"
+      url: "http://www.sz.gov.cn/cn/xxgk/zfxxgj/yjzb/content/list"
+      xpath: "//div[@class='list']//li"
+      link_prefix: "http://www.sz.gov.cn"
+      check_interval: 3600
+      priority: 2
+
+# 国际政策
+international:
+  us:
+    - name: "Federal Reserve"
+      url: "https://www.federalreserve.gov/monetarypolicy/policy.htm"
+      rss: "https://www.federalreserve.gov/feeds/press_all.xml"
+      xpath: "//div[@class='panel panel-default']//li"
+      link_prefix: "https://www.federalreserve.gov"
+      check_interval: 300
+      priority: 0
+      keywords: ["FOMC", "interest rate", "policy"]
+      
+    - name: "SEC News"
+      url: "https://www.sec.gov/news/press-releases"
+      xpath: "//table[@class='generic-table']//tr"
+      link_prefix: "https://www.sec.gov"
+      check_interval: 600
+      priority: 1
+      keywords: ["enforcement", "regulation", "settlement"]
+      
+    - name: "White House"
+      url: "https://www.whitehouse.gov/briefing-room/"
+      rss: "https://www.whitehouse.gov/feed/"
+      xpath: "//article"
+      link_prefix: "https://www.whitehouse.gov"
+      check_interval: 600
+      priority: 1
+      
+    - name: "Treasury"
+      url: "https://home.treasury.gov/news/press-releases"
+      rss: "https://home.treasury.org/news/press-releases/rss.xml"
+      xpath: "//div[@class='usa-collection__item']"
+      link_prefix: "https://home.treasury.gov"
+      check_interval: 600
+      priority: 1
+      
+    - name: "USTR"
+      url: "https://ustr.gov/about-us/policy-offices/press-office/press-releases"
+      xpath: "//div[@class='view-content']//li"
+      link_prefix: "https://ustr.gov"
+      check_interval: 3600
+      priority: 2
+      keywords: ["trade", "tariff", "China"]
+
+  eu:
+    - name: "ECB Press"
+      url: "https://www.ecb.europa.eu/press/pr/date/html/index.en.html"
+      rss: "https://www.ecb.europa.eu/rss/press.html"
+      xpath: "//dl[@class='ecb-basicList']//dt"
+      link_prefix: "https://www.ecb.europa.eu"
+      check_interval: 600
+      priority: 1
+      
+    - name: "EU Commission"
+      url: "https://ec.europa.eu/commission/presscorner/api/en/announcements"
+      xpath: "//div[@class='ecl-content-block']"
+      link_prefix: "https://ec.europa.eu"
+      check_interval: 3600
+      priority: 2
+
+  international_org:
+    - name: "IMF News"
+      url: "https://www.imf.org/en/news"
+      rss: "https://www.imf.org/en/rss-feeds"
+      xpath: "//div[@class='result-item']"
+      link_prefix: "https://www.imf.org"
+      check_interval: 3600
+      priority: 2
+      
+    - name: "World Bank"
+      url: "https://www.worldbank.org/en/news"
+      xpath: "//div[@class='list-item']"
+      link_prefix: "https://www.worldbank.org"
+      check_interval: 3600
+      priority: 2
+      
+    - name: "WTO News"
+      url: "https://www.wto.org/english/news_e/news_e.htm"
+      xpath: "//div[@class='news-item']"
+      link_prefix: "https://www.wto.org"
+      check_interval: 3600
+      priority: 2
+
+# 行业政策
+industry:
+  - name: "国家能源局"
+    url: "http://www.nea.gov.cn/zwgk/zcwj/zcjd/"
+    xpath: "//div[@class='list']//li"
+    link_prefix: "http://www.nea.gov.cn"
+    check_interval: 3600
+    priority: 1
+    keywords: ["新能源", "光伏", "储能", "电力"]
+    
+  - name: "国家数据局"
+    url: "https://www.nda.gov.cn/zwgk/zcwj/"
+    xpath: "//div[@class='list']//li"
+    link_prefix: "https://www.nda.gov.cn"
+    check_interval: 3600
+    priority: 1
+    keywords: ["数据", "数字", "人工智能"]
+    
+  - name: "国家药监局"
+    url: "https://www.nmpa.gov.cn/xxgk/ggtg/"
+    xpath: "//div[@class='list']//li"
+    link_prefix: "https://www.nmpa.gov.cn"
+    check_interval: 3600
+    priority: 2
+    keywords: ["药品", "医疗器械", "审批"]

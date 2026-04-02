@@ -15,7 +15,7 @@ fundamental_analysis.py — 企业基本面深度分析工具集
 import os
 import sys
 import math
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # ---------------------------------------------------------------------------
 # 基础设施
@@ -928,6 +928,136 @@ def _fetch_institutional_holdings(symbol: str) -> dict:
 # 注册入口（薄包装器）
 # ===================================================================
 
+@handle_errors
+def fetch_valuation_percentile(symbol: str, market: str = "A") -> dict:
+    """获取估值历史分位数 — PE/PB的历史百分位排名。"""
+    market = market.upper()
+
+    if market == "A":
+        if ak is None:
+            return {"error": "akshare 未安装，无法获取A股估值数据"}
+
+        # 获取近3年历史日线数据
+        end_date = datetime.now().strftime("%Y%m%d")
+        start_date = (datetime.now() - timedelta(days=3 * 365)).strftime("%Y%m%d")
+        try:
+            df_hist = ak.stock_zh_a_hist(
+                symbol=symbol, period="daily",
+                start_date=start_date, end_date=end_date, adjust="qfq",
+            )
+        except Exception as e:
+            return {"error": f"获取历史数据失败: {str(e)}"}
+        if df_hist is None or df_hist.empty:
+            return {"error": f"未找到 {symbol} 的历史数据"}
+
+        history_days = len(df_hist)
+
+        # 获取当前实时估值数据
+        current_pe = None
+        current_pb = None
+        try:
+            df_spot = ak.stock_zh_a_spot_em()
+            if df_spot is not None and not df_spot.empty:
+                row = df_spot[df_spot["代码"] == symbol]
+                if not row.empty:
+                    r = row.iloc[0]
+                    current_pe = _safe_float(r.get("市盈率-动态"))
+                    current_pb = _safe_float(r.get("市净率"))
+        except Exception:
+            pass
+
+        # 尝试构建PE/PB历史序列
+        pe_series = []
+        pb_series = []
+
+        # 若历史数据中包含市盈率/市净率列则直接使用
+        pe_col = None
+        pb_col = None
+        for col in df_hist.columns:
+            col_str = str(col)
+            if "市盈率" in col_str:
+                pe_col = col
+            elif "市净率" in col_str:
+                pb_col = col
+
+        if pe_col:
+            pe_series = [_safe_float(v) for v in df_hist[pe_col] if _safe_float(v) is not None and _safe_float(v) > 0]
+        if pb_col:
+            pb_series = [_safe_float(v) for v in df_hist[pb_col] if _safe_float(v) is not None and _safe_float(v) > 0]
+
+        # 如果没有直接的估值列，使用个股指标接口补充
+        if (not pe_series or not pb_series) and current_pe and current_pb:
+            try:
+                df_indicator = ak.stock_a_indicator_lg(symbol=symbol)
+                if df_indicator is not None and not df_indicator.empty:
+                    for col in df_indicator.columns:
+                        col_str = str(col).lower()
+                        if "pe_ttm" in col_str or "pe" in col_str:
+                            if not pe_series:
+                                pe_series = [_safe_float(v) for v in df_indicator[col]
+                                             if _safe_float(v) is not None and _safe_float(v) > 0]
+                        if "pb" in col_str:
+                            if not pb_series:
+                                pb_series = [_safe_float(v) for v in df_indicator[col]
+                                             if _safe_float(v) is not None and _safe_float(v) > 0]
+            except Exception:
+                pass
+
+        # 计算分位数
+        def _calc_percentile(series, current_val):
+            if not series or current_val is None:
+                return None, None, None, None
+            s = sorted(series)
+            pct = sum(1 for x in s if x <= current_val) / len(s) * 100
+            return (
+                _safe_float(pct),
+                _safe_float(min(s)),
+                _safe_float(max(s)),
+                _safe_float(s[len(s) // 2]),
+            )
+
+        pe_percentile, pe_min, pe_max, pe_median = _calc_percentile(pe_series, current_pe)
+        pb_percentile, pb_min, pb_max, pb_median = _calc_percentile(pb_series, current_pb)
+
+        # 估值评价
+        assessments = []
+        if pe_percentile is not None:
+            if pe_percentile >= 80:
+                assessments.append(f"PE处于近3年{pe_percentile:.0f}%分位, 估值偏高")
+            elif pe_percentile >= 50:
+                assessments.append(f"PE处于近3年{pe_percentile:.0f}%分位, 估值中等偏高")
+            elif pe_percentile >= 20:
+                assessments.append(f"PE处于近3年{pe_percentile:.0f}%分位, 估值中等偏低")
+            else:
+                assessments.append(f"PE处于近3年{pe_percentile:.0f}%分位, 估值偏低")
+        if pb_percentile is not None:
+            if pb_percentile >= 80:
+                assessments.append(f"PB处于近3年{pb_percentile:.0f}%分位, 偏高")
+            elif pb_percentile <= 20:
+                assessments.append(f"PB处于近3年{pb_percentile:.0f}%分位, 偏低")
+
+        assessment = "; ".join(assessments) if assessments else "数据不足, 无法评估估值分位"
+
+        return {
+            "symbol": symbol,
+            "pe_ttm": current_pe,
+            "pe_percentile": pe_percentile,
+            "pe_min": pe_min,
+            "pe_max": pe_max,
+            "pe_median": pe_median,
+            "pb": current_pb,
+            "pb_percentile": pb_percentile,
+            "pb_min": pb_min,
+            "pb_max": pb_max,
+            "pb_median": pb_median,
+            "assessment": assessment,
+            "history_days": history_days,
+        }
+
+    else:
+        return {"error": f"估值分位数暂仅支持A股市场，不支持 {market}"}
+
+
 def register_tools(mcp):
     """将基本面分析工具注册到 FastMCP 实例。"""
 
@@ -989,3 +1119,20 @@ def register_tools(mcp):
                   institutional（机构持仓）、trend（趋势判断文字摘要）。
         """
         return fetch_shareholder_analysis(symbol, market)
+
+    @mcp.tool
+    def get_valuation_percentile(symbol: str, market: str = "A") -> dict:
+        """获取估值历史分位数 —— PE/PB的历史百分位排名。
+
+        获取近3年PE/PB估值数据，计算当前值在历史中的百分位排名，
+        辅助判断当前估值的高低位置。
+
+        Args:
+            symbol: 股票代码，如 "600519"。
+            market: 市场类型，目前仅支持 "A"（A股）。默认 "A"。
+
+        Returns:
+            dict: 包含 pe_ttm, pe_percentile, pe_min/max/median,
+                  pb, pb_percentile, pb_min/max/median, assessment, history_days。
+        """
+        return fetch_valuation_percentile(symbol, market)

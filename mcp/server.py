@@ -38,6 +38,7 @@ def _register_all_tools():
         "report_generator",
         "knowledge_base",
         "technical_analysis",
+        "futures_data",
     ]
 
     for module_name in tool_modules:
