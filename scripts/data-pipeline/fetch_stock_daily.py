@@ -20,6 +20,16 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+# 缓存支持（优雅降级）
+try:
+    from mcp.utils.cache import DataCache, TTL_MARKET
+    _cache = DataCache()
+    _cache_available = True
+except ImportError:
+    _cache = None
+    _cache_available = False
+    TTL_MARKET = 300  # 5分钟默认值
+
 INDEX_CODES = {
     '沪深300': '000300.SH',
     '上证指数': '000001.SH',
@@ -53,6 +63,16 @@ def resolve_ts_code(ts_code: str) -> str:
 
 
 def get_stock_data(ts_code: str, start_date: str, end_date: str, period: str = 'daily') -> dict:
+    # 构建缓存key
+    cache_key = f"stock:{ts_code}:{start_date}:{end_date}"
+
+    # 尝试从缓存读取
+    if _cache_available:
+        cached = _cache.get(cache_key, TTL_MARKET)
+        if cached is not None:
+            print(f"[CACHE] 从缓存读取 {ts_code} 数据成功")
+            return cached
+
     try:
         import akshare as ak
     except ImportError:
@@ -68,6 +88,17 @@ def get_stock_data(ts_code: str, start_date: str, end_date: str, period: str = '
         if is_index or ts_code in INDEX_CODES.values():
             result['data'] = ak.stock_zh_index_daily(ts_code=ts_code)
             result['name'] = f"指数{ts_code}"
+            # 指数数据需要手动过滤日期
+            if 'date' in result['data'].columns:
+                result['data'] = result['data'][
+                    (result['data']['date'] >= start_date) &
+                    (result['data']['date'] <= end_date)
+                ]
+            elif '日期' in result['data'].columns:
+                result['data'] = result['data'][
+                    (result['data']['日期'] >= start_date) &
+                    (result['data']['日期'] <= end_date)
+                ]
         else:
             result['data'] = ak.stock_zh_a_hist(
                 symbol=ts_code.split('.')[0],
@@ -82,6 +113,11 @@ def get_stock_data(ts_code: str, start_date: str, end_date: str, period: str = '
                 ]
 
         print(f"[OK] 获取 {ts_code} 数据成功，共 {len(result['data'])} 条")
+
+        # 写入缓存
+        if _cache_available and result['data'] is not None:
+            _cache.set(cache_key, result)
+
         return result
 
     except Exception as e:
