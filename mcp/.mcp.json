@@ -1,0 +1,41 @@
+{
+  "name": "investment-research-assistant-mcp",
+  "version": "0.1.0",
+  "description": "金融投研助手工具链 MCP Server：指数数据抓取、研报初始化与索引管理",
+  "command": "python3",
+  "cwd": ".",
+  "env": {},
+  "tools": [
+    {
+      "name": "fetch_index_data",
+      "description": "抓取A股主要指数（沪深300、创业板指、上证指数）的日线数据，保存为CSV到data目录。无需安装pandas/akshare/yfinance。",
+      "script": "tools/fetch_index_data.py",
+      "args": [
+        "--index", "${index:hs300,cy,sz}",
+        "--output", "${output:data}",
+        "--days", "${days:365}"
+      ]
+    },
+    {
+      "name": "init_report",
+      "description": "根据标题和作者创建按日期命名的研报目录，并生成标准化的初始HTML模板。",
+      "script": "tools/init_report.py",
+      "args": [
+        "--title", "${title}",
+        "--author", "${author}"
+      ]
+    },
+    {
+      "name": "update_index_json",
+      "description": "将新研报的元数据追加到index.json，支持自动生成递增ID、日期和标签解析。",
+      "script": "tools/update_index_json.py",
+      "args": [
+        "--title", "${title}",
+        "--author", "${author}",
+        "--category", "${category:微观}",
+        "--tags", "${tags}",
+        "--report-path", "${report_path}"
+      ]
+    }
+  ]
+}

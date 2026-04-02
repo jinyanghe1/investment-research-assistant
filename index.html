@@ -4,166 +4,267 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>投研助手 | 研报知识库</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Inter', 'Noto Sans SC', sans-serif; }
-    .card-hover { transition: all 0.3s ease; }
-    .card-hover:hover { transform: translateY(-4px); box-shadow: 0 12px 24px -8px rgba(0,0,0,0.15); }
+    :root {
+      --primary: #1a3a5c;
+      --secondary: #2c5282;
+      --bg: #f7fafc;
+      --card: #ffffff;
+      --text: #2d3748;
+      --muted: #718096;
+      --border: #e2e8f0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    /* 导航栏 */
+    nav {
+      background: var(--primary);
+      color: #fff;
+      padding: 16px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .nav-brand {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    .search-box {
+      flex: 1;
+      max-width: 400px;
+    }
+    .search-box input {
+      width: 100%;
+      padding: 10px 14px;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      outline: none;
+    }
+    /* 主体 */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 24px 60px;
+    }
+    .page-title {
+      font-size: 1.5rem;
+      margin-bottom: 8px;
+    }
+    .page-desc {
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+    /* 筛选标签 */
+    .filters {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+    .filter-btn {
+      padding: 6px 14px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    .filter-btn:hover, .filter-btn.active {
+      background: var(--secondary);
+      color: #fff;
+      border-color: var(--secondary);
+    }
+    /* 研报卡片 */
+    .report-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px;
+    }
+    .report-card {
+      background: var(--card);
+      border-radius: 10px;
+      padding: 22px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+      transition: transform 0.15s, box-shadow 0.15s;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+    .report-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    }
+    .report-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+    .report-meta {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .report-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .report-tag {
+      font-size: 0.75rem;
+      background: #edf2f7;
+      color: var(--secondary);
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+    .report-category {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .cat-macro { background: #fef3c7; color: #92400e; }
+    .cat-micro { background: #dbeafe; color: #1e40af; }
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+    .footer {
+      text-align: center;
+      padding: 40px 0 20px;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    @media (max-width: 640px) {
+      .nav-inner { flex-direction: column; align-items: stretch; }
+      .search-box { max-width: 100%; }
+      .report-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
-
-  <!-- 顶部导航栏 -->
-  <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between h-16">
-        <!-- 项目名称 -->
-        <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-lg">
-            研
-          </div>
-          <span class="font-bold text-xl tracking-tight text-slate-900">投研助手</span>
-        </div>
-
-        <!-- 搜索框 -->
-        <div class="flex-1 max-w-md mx-4">
-          <div class="relative">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-              </svg>
-            </div>
-            <input
-              type="text"
-              id="searchInput"
-              placeholder="搜索研报标题、标签或分类..."
-              class="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-full leading-5 bg-slate-50 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition"
-            />
-          </div>
-        </div>
-
-        <!-- 右侧占位 -->
-        <div class="hidden md:flex items-center gap-4 text-sm text-slate-500">
-          <span id="reportCount">加载中...</span>
-        </div>
+<body>
+  <nav>
+    <div class="nav-inner">
+      <div class="nav-brand">📊 投研助手 · 研报知识库</div>
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="搜索研报标题、标签、作者...">
       </div>
     </div>
   </nav>
 
-  <!-- 主体内容 -->
-  <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
-    <!-- 标题区 -->
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-slate-900">研报知识库</h1>
-      <p class="mt-2 text-slate-500">基于微观基本面与宏观政经数据的独家产业研报集合</p>
+  <div class="container">
+    <h1 class="page-title">最新研报</h1>
+    <p class="page-desc">微观基本面与宏观政经深度结合的独家产业研究</p>
+
+    <div class="filters" id="filterContainer">
+      <button class="filter-btn active" data-filter="all">全部</button>
+      <button class="filter-btn" data-filter="宏观">宏观</button>
+      <button class="filter-btn" data-filter="微观">微观</button>
     </div>
 
-    <!-- 分类筛选标签 -->
-    <div class="flex flex-wrap gap-2 mb-8" id="categoryFilters">
-      <button data-filter="all" class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium bg-indigo-600 text-white">全部</button>
-      <button data-filter="宏观" class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-200 hover:bg-slate-50">宏观</button>
-      <button data-filter="微观" class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-200 hover:bg-slate-50">微观</button>
+    <div class="report-grid" id="reportGrid">
+      <!-- 卡片由JS动态生成 -->
     </div>
 
-    <!-- 研报卡片网格 -->
-    <div id="reportGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <!-- 动态渲染 -->
+    <div class="empty-state" id="emptyState" style="display:none;">
+      <p>未找到匹配的研报</p>
     </div>
+  </div>
 
-    <!-- 无结果提示 -->
-    <div id="emptyState" class="hidden text-center py-20">
-      <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 mb-4">
-        <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-        </svg>
-      </div>
-      <h3 class="text-lg font-medium text-slate-900">未找到相关研报</h3>
-      <p class="mt-1 text-slate-500">请尝试更换关键词或清除筛选条件</p>
-    </div>
-  </main>
-
-  <!-- 页脚 -->
-  <footer class="bg-white border-t border-slate-200 py-8">
-    <div class="max-w-7xl mx-auto px-4 text-center text-sm text-slate-500">
-      &copy; 2026 投研助手 · 金融级专业研报知识库
-    </div>
-  </footer>
+  <div class="footer">
+    &copy; 2026 投研助手 | 所有研报仅供参考，不构成投资建议
+  </div>
 
   <script>
-    let allReports = [];
-    let currentCategory = 'all';
+    let reports = [];
 
     async function loadReports() {
       try {
         const res = await fetch('index.json');
-        if (!res.ok) throw new Error('无法加载 index.json');
-        allReports = await res.json();
-        renderReports();
-      } catch (err) {
-        document.getElementById('reportGrid').innerHTML = `
-          <div class="col-span-full text-center py-12 text-red-500">
-            数据加载失败：${err.message}
-          </div>
-        `;
+        reports = await res.json();
+        renderReports(reports);
+      } catch (e) {
+        document.getElementById('reportGrid').innerHTML =
+          '<div class="empty-state">加载失败，请检查 index.json 是否存在</div>';
       }
     }
 
-    function renderReports() {
-      const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+    function renderReports(data) {
       const grid = document.getElementById('reportGrid');
       const empty = document.getElementById('emptyState');
-
-      const filtered = allReports.filter(r => {
-        const matchCategory = currentCategory === 'all' || r.category === currentCategory;
-        const matchKeyword = !keyword ||
-          r.title.toLowerCase().includes(keyword) ||
-          r.tags.some(t => t.toLowerCase().includes(keyword)) ||
-          r.category.toLowerCase().includes(keyword);
-        return matchCategory && matchKeyword;
-      });
-
-      document.getElementById('reportCount').textContent = `共 ${filtered.length} 篇研报`;
-
-      if (filtered.length === 0) {
-        grid.innerHTML = '';
-        empty.classList.remove('hidden');
+      grid.innerHTML = '';
+      if (data.length === 0) {
+        empty.style.display = 'block';
         return;
       }
-
-      empty.classList.add('hidden');
-      grid.innerHTML = filtered.map(r => `
-        <a href="${r.filePath}" class="block bg-white rounded-2xl border border-slate-200 p-6 card-hover group">
-          <div class="flex items-start justify-between mb-4">
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${r.category === '宏观' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">
-              ${r.category}
-            </span>
-            <span class="text-xs text-slate-400">${r.date}</span>
-          </div>
-          <h3 class="text-lg font-semibold text-slate-900 mb-2 line-clamp-2 group-hover:text-indigo-600 transition">${r.title}</h3>
-          <p class="text-sm text-slate-500 mb-4">作者：${r.author}</p>
-          <div class="flex flex-wrap gap-2">
-            ${r.tags.map(t => `<span class="px-2 py-1 rounded-md bg-slate-100 text-slate-600 text-xs">${t}</span>`).join('')}
-          </div>
-        </a>
-      `).join('');
+      empty.style.display = 'none';
+      data.forEach(r => {
+        const card = document.createElement('a');
+        card.href = r.filePath;
+        card.className = 'report-card';
+        card.style.position = 'relative';
+        const catClass = r.category === '宏观' ? 'cat-macro' : 'cat-micro';
+        const tagsHtml = (r.tags || []).map(t => `<span class="report-tag">${t}</span>`).join('');
+        card.innerHTML = `
+          <span class="report-category ${catClass}">${r.category}</span>
+          <div class="report-title">${r.title}</div>
+          <div class="report-meta">${r.author} · ${r.date} · ID: ${r.id}</div>
+          <div class="report-tags">${tagsHtml}</div>
+        `;
+        grid.appendChild(card);
+      });
     }
 
-    // 搜索监听
-    document.getElementById('searchInput').addEventListener('input', renderReports);
-
-    // 分类筛选监听
-    document.getElementById('categoryFilters').addEventListener('click', e => {
-      if (e.target.classList.contains('filter-btn')) {
-        currentCategory = e.target.dataset.filter;
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-          btn.classList.remove('bg-indigo-600', 'text-white');
-          btn.classList.add('bg-white', 'text-slate-600', 'border', 'border-slate-200');
-        });
-        e.target.classList.remove('bg-white', 'text-slate-600', 'border', 'border-slate-200');
-        e.target.classList.add('bg-indigo-600', 'text-white');
-        renderReports();
+    function filterReports(category) {
+      if (category === 'all') {
+        renderReports(reports);
+      } else {
+        renderReports(reports.filter(r => r.category === category));
       }
+    }
+
+    function searchReports(keyword) {
+      const lower = keyword.toLowerCase();
+      const filtered = reports.filter(r => {
+        const text = `${r.title} ${r.author} ${r.tags.join(' ')} ${r.id}`.toLowerCase();
+        return text.includes(lower);
+      });
+      renderReports(filtered);
+    }
+
+    document.getElementById('filterContainer').addEventListener('click', e => {
+      if (e.target.classList.contains('filter-btn')) {
+        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        e.target.classList.add('active');
+        filterReports(e.target.dataset.filter);
+      }
+    });
+
+    document.getElementById('searchInput').addEventListener('input', e => {
+      searchReports(e.target.value.trim());
     });
 
     loadReports();
