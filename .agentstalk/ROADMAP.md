@@ -172,13 +172,13 @@ data/
 | MCP测试文档 | ✅ 完成 | `docs/MCP_TEST_GUIDE.md` |
 | 华工科技研报 | ✅ 完成 | 4个Agent并行完成 |
 
-### 待修复 (P0) - 数据质量问题 【新增】
+### 待修复 (P0) - 数据质量问题 【已修复 ✅】
 
-| 模块 | 问题 | 影响 | 修复方案 |
-|------|------|------|----------|
-| **股价数据失真** | 华工科技实际100元，研报显示41.82元 | 研报数据不可信 | **强制使用yfinance**，禁止从网上搜索股价 |
-| **财报数据滞后** | 2025年一季报已发布，仍使用estimate | 分析基于过时数据 | **添加财报日期检查**，优先使用实际数据 |
-| **数据验证缺失** | DataAgent未验证数据合理性 | 错误数据流入研报 | **添加数据校验规则**（如股价范围检查） |
+| 模块 | 问题 | 影响 | 修复方案 | 状态 |
+|------|------|------|----------|------|
+| **股价数据失真** | 华工科技实际100元，研报显示41.82元 | 研报数据不可信 | **强制使用yfinance**，禁止从网上搜索股价 | ✅ |
+| **财报数据滞后** | 2025年一季报已发布，仍使用estimate | 分析基于过时数据 | **check_annual_report_status()** 检查实际vs预测 | ✅ |
+| **数据验证缺失** | DataAgent未验证数据合理性 | 错误数据流入研报 | **DataValidator** 验证中间件 | ✅ |
 
 ### 数据质量SOP更新 【新增】
 
@@ -206,22 +206,22 @@ data/
 
 ## 三、待办任务清单
 
-### P0 - 紧急修复 (本周完成)
+### P0 - 紧急修复 (本周完成) ✅
 
-- [ ] **修复股价获取脚本**
-  - [ ] 更新 `tools/fetch_stock_data.py` - 强制使用yfinance
-  - [ ] 添加股价合理性校验 (1-1000元)
-  - [ ] 添加市值交叉验证
+- [x] **修复股价获取脚本**
+  - [x] 更新 `tools/fetch_stock_data.py` - 强制使用yfinance
+  - [x] 添加股价合理性校验 (1-1000元)
+  - [x] 添加市值交叉验证
 
-- [ ] **修复财报数据获取**
-  - [ ] 添加财报发布日期检查
-  - [ ] 优先使用实际财报数据而非预测
-  - [ ] 添加季度数据自动获取
+- [x] **修复财报数据获取**
+  - [x] 添加财报发布日期检查 - `check_annual_report_status()` 函数
+  - [x] 优先使用实际财报数据而非预测
+  - [x] 添加季度数据自动获取
 
-- [ ] **数据验证中间件**
-  - [ ] 创建 `tools/data_validator.py`
-  - [ ] 实现股价/市值/PE范围检查
-  - [ ] 实现财报日期新鲜度检查
+- [x] **数据验证中间件**
+  - [x] 创建 `tools/data_validator.py`
+  - [x] 实现股价/市值/PE范围检查
+  - [x] 实现财报日期新鲜度检查
 
 ### P1 - 数据管道完善
 
@@ -324,10 +324,11 @@ data/
 |------|------|------|--------|------|
 | fetch_stock_data | `tools/fetch_stock_data.py` | 个股数据（强制yfinance） | P0 | ✅ |
 | data_validator | `tools/data_validator.py` | 数据质量校验 | P0 | ✅ |
+| check_annual_report_status | `tools/fetch_stock_data.py` | 实际vs预测数据检测 | P0 | ✅ |
 | technical_analysis | `tools/technical_analysis.py` | 基础技术指标 | P1 | ✅ |
 | technical_enhanced | `tools/technical_analysis_enhanced.py` | 增强版技术分析 | P1 | ✅ |
-| fetch_macro_data | `scripts/data-pipeline/fetch_macro_data.py` | 宏观数据 | P1 | 🔄 |
-| fetch_futures_data | `scripts/data-pipeline/fetch_futures.py` | 期货数据 | P1 | 🔄 |
+| fetch_macro_data | `scripts/data-pipeline/fetch_macro_data.py` | 宏观数据 | P1 | ✅ |
+| fetch_futures_data | `scripts/data-pipeline/fetch_futures.py` | 期货数据 | P1 | ✅ |
 | generate_charts | `tools/chart_generator.py` | 图表生成 | P1 | ✅ |
 
 ---
@@ -343,7 +344,7 @@ data/
 ├── AGENTS.md                 # Agent定义 ✅
 ├── SOP/                      # 标准作业程序
 │   ├── 研报撰写SOP.md       ✅
-│   └── 数据获取SOP.md       # 待创建 (P0)
+│   └── 数据获取SOP.md       ✅ (P0)
 ├── reports/                  # 研报存储
 │   └── 华工科技深度研报/     # 需修复数据
 ├── tools/                    # 工具脚本
@@ -357,12 +358,12 @@ data/
 │   ├── chart_style.py        # ✅ 图表样式
 │   └── chart_generator.py    # ✅ 图表生成
 ├── scripts/
-│   └── data-pipeline/        # 待完善
-│       ├── fetch_macro_data.py
-│       ├── fetch_stock_daily.py
-│       └── fetch_futures.py
+│   └── data-pipeline/        ✅
+│       ├── fetch_macro_data.py  ✅
+│       ├── fetch_stock_daily.py ✅
+│       └── fetch_futures.py ✅
 ├── styles/
-│   └── ubs.mplstyle          # 待创建
+│   └── ubs.mplstyle          ✅
 ├── templates/
 │   └── report-template.html  # 已有
 ├── mcp/
