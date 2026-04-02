@@ -20,13 +20,12 @@ from fastmcp import FastMCP
 # ── 创建 MCP Server 实例 ──────────────────────────────────────────
 mcp = FastMCP(
     "投研助手",
-    description="AI驱动的全链路投研MCP工具集：行情数据·宏观分析·公司研究·研报生成·知识库管理",
 )
 
 # ── 导入并注册所有工具模块 ──────────────────────────────────────────
 # 支持两种 import 路径：
-#   1. 从 mcp/ 目录直接运行（python server.py）
-#   2. 从上级目录运行（python -m mcp.server）
+#   1. 从 research_mcp/ 目录直接运行（python server.py）
+#   2. 从上级目录运行（python -m research_mcp.server）
 
 def _register_all_tools():
     """导入各工具模块并注册到 mcp 实例"""
@@ -43,12 +42,12 @@ def _register_all_tools():
 
     for module_name in tool_modules:
         try:
-            # 方式1: 从 mcp/ 目录运行
-            mod = __import__(f"tools.{module_name}", fromlist=["register_tools"])
+            # 方式1: 从上级目录运行（使用 research_mcp.tools 前缀）
+            mod = __import__(f"research_mcp.tools.{module_name}", fromlist=["register_tools"])
         except ImportError:
             try:
-                # 方式2: 从上级目录运行
-                mod = __import__(f"mcp.tools.{module_name}", fromlist=["register_tools"])
+                # 方式2: 从 research_mcp/ 目录内运行
+                mod = __import__(f"tools.{module_name}", fromlist=["register_tools"])
             except ImportError:
                 print(f"[投研助手] 跳过未实现的工具模块: {module_name}", file=sys.stderr)
                 continue

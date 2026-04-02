@@ -53,7 +53,7 @@ try:
 except ImportError:
     np = None
 
-from tools.market_data import fetch_stock_history
+from research_mcp.tools.market_data import fetch_stock_history
 
 
 # ---------------------------------------------------------------------------
