@@ -164,21 +164,26 @@ data/
 | 研报样例 | ✅ 完成 | `reports/sample-report-001.html` |
 | MCP配置 | ✅ 完成 | `mcp/.mcp.json` |
 | SOP文档 | ✅ 完成 | `SOP/研报撰写SOP.md` |
-
-### 进行中
-
-| 模块 | 状态 | 说明 |
-|------|------|------|
+| 数据管道脚本 | ✅ 完成 | `scripts/data-pipeline/fetch_*.py` |
+| UBS绘图工具 | ✅ 完成 | `tools/chart_*.py`, `styles/ubs.mplstyle` |
+| MCP测试文档 | ✅ 完成 | `docs/MCP_TEST_GUIDE.md` |
 | 调研阶段 | ✅ 完成 | 4个调研Agent已完成 |
+
+### 待改进 (P0)
+
+| 模块 | 问题 | 说明 |
+|------|------|------|
+| 数据管道脚本 | start_date/end_date未使用 | 日期过滤功能缺失 |
+| UBS绘图工具 | 样式配置两处重复 | DRY违反 |
 
 ### 待开发
 
 | 模块 | 优先级 | 说明 |
 |------|--------|------|
-| 数据管道脚本 | P0 | fetch_macro_data.py, fetch_stock_daily.py, fetch_futures.py |
-| UBS绘图工具 | P0 | chart_style.py, chart_generator.py |
-| MCP测试文档 | P1 | 数据获取、批量分析、绘图脚本测试 |
-| SOP扩充 | P1 | 数据获取SOP、分析框架SOP |
+| 缓存集成 | P0 | MCP中已有cache.py但未使用 |
+| 重试机制 | P1 | 添加tenacity重试 |
+| mplfinance集成 | P1 | K线图支持 |
+| 增量更新 | P2 | 数据管道优化 |
 
 ---
 
