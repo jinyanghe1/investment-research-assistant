@@ -233,6 +233,26 @@ def df_to_html_table(df, title: str = "", max_rows: int = 100) -> str:
     return "\n".join(html_parts)
 
 
+def safe_round(val, decimals: int = 2):
+    """安全地将数值保留指定小数位。无法转换时返回原值。"""
+    try:
+        return round(float(val), decimals)
+    except (TypeError, ValueError):
+        return val
+
+
+def date_to_str(val) -> Optional[str]:
+    """将各种日期格式统一为 YYYY-MM-DD 字符串。"""
+    if val is None:
+        return None
+    if isinstance(val, str):
+        return val[:10]
+    try:
+        return val.strftime("%Y-%m-%d")
+    except Exception:
+        return str(val)[:10]
+
+
 def format_date(date_str: Optional[str], output_fmt: str = "%Y-%m-%d") -> str:
     """
     日期格式标准化 - 支持多种输入格式，统一输出

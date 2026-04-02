@@ -1,0 +1,61 @@
+# UBS风格Matplotlib配置文件
+# 用于金融研报图表统一样式
+
+# ==================== 字体设置 ====================
+font.family: sans-serif
+font.sans-serif: PingFang SC, Microsoft YaHei, SimHei, DejaVu Sans
+axes.unicode_minus: False
+
+# ==================== 尺寸设置 ====================
+figure.figsize: 12, 6
+figure.dpi: 150
+figure.facecolor: white
+axes.facecolor: white
+savefig.facecolor: white
+savefig.bbox: tight
+savefig.pad_inches: 0.05
+
+# ==================== 颜色循环 ====================
+axes.prop_cycle: cycler('color', ['003366', '6B8299', 'DC2626', '16A34A', 'F59E0B', '8B5CF6'])
+
+# ==================== 标题设置 ====================
+axes.titlesize: 14
+axes.titleweight: bold
+axes.titlepad: 12
+
+# ==================== 标签设置 ====================
+axes.labelweight: normal
+axes.labelsize: 11
+xtick.labelsize: 10
+ytick.labelsize: 10
+
+# ==================== 网格设置 ====================
+grid.linestyle: --
+grid.linewidth: 0.5
+grid.alpha: 0.6
+axes.grid: True
+
+# ==================== 图例设置 ====================
+legend.frameon: True
+legend.framealpha: 0.9
+legend.fancybox: True
+legend.fontsize: 10
+legend.borderpad: 0.5
+legend.handlelength: 1.5
+
+# ==================== 边框设置 ====================
+axes.spines.top: False
+axes.spines.right: False
+axes.spines.linewidth: 0.8
+
+# ==================== 线条设置 ====================
+lines.linewidth: 1.5
+lines.markersize: 4
+
+# ==================== 边距设置 ====================
+axes.autoscale_view: True
+axes Tight: True
+subplots_adjust.top: 0.9
+subplots_adjust.bottom: 0.15
+subplots_adjust.left: 0.12
+subplots_adjust.right: 0.95
