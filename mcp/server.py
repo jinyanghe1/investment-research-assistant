@@ -34,8 +34,10 @@ def _register_all_tools():
         "market_data",
         "macro_data",
         "company_analysis",
+        "fundamental_analysis",
         "report_generator",
         "knowledge_base",
+        "technical_analysis",
     ]
 
     for module_name in tool_modules:

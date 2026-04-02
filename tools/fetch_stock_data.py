@@ -168,6 +168,66 @@ def get_financial_data_from_yfinance(ts_code: str) -> Dict:
     return result
 
 
+def check_annual_report_status(financial_data: Dict) -> Dict:
+    """
+    检查财报数据是实际发布还是预测值
+
+    Args:
+        financial_data: get_financial_data_from_yfinance 返回的财务数据字典
+
+    Returns:
+        包含报告状态信息的字典:
+        - is_actual: 是否为实际发布数据
+        - data_status: 'actual' | 'estimate' | 'unknown'
+        - report_freshness: 'fresh' | 'stale' | 'unknown'
+        - days_since_report: 距离报告日期的天数
+        - warning: 警告信息（如有）
+    """
+    result = {
+        'is_actual': True,  # 默认假设为真实数据
+        'data_status': 'unknown',
+        'report_freshness': 'unknown',
+        'days_since_report': None,
+        'warning': None
+    }
+
+    report_date = financial_data.get('report_date')
+    if not report_date:
+        result['warning'] = '未提供财报日期，无法判断数据性质'
+        result['data_status'] = 'unknown'
+        return result
+
+    # 计算天数差
+    try:
+        if isinstance(report_date, str):
+            report_dt = datetime.strptime(report_date, '%Y-%m-%d')
+        else:
+            report_dt = report_date
+        days_diff = (datetime.now() - report_dt).days
+        result['days_since_report'] = days_diff
+    except Exception:
+        result['warning'] = f'财报日期解析失败: {report_date}'
+        return result
+
+    # 判断数据新鲜度
+    if days_diff <= 90:
+        result['report_freshness'] = 'fresh'
+        result['data_status'] = 'actual'
+        result['is_actual'] = True
+    elif days_diff <= 180:
+        result['report_freshness'] = 'stale'
+        result['warning'] = f'财报数据已{days_diff}天，可能为历史数据或预测值'
+        result['data_status'] = 'estimate'
+        result['is_actual'] = False
+    else:
+        result['report_freshness'] = 'very_stale'
+        result['warning'] = f'财报数据超过{days_diff}天，极可能为预测值，请获取最新财报'
+        result['data_status'] = 'estimate'
+        result['is_actual'] = False
+
+    return result
+
+
 def fetch_complete_stock_data(ts_code: str, verify: bool = True) -> Tuple[Dict, bool, list]:
     """
     获取完整的股票数据（股价+财务）
@@ -197,6 +257,16 @@ def fetch_complete_stock_data(ts_code: str, verify: bool = True) -> Tuple[Dict, 
         net_prof = financial_data.get('net_profit')
         print(f"[INFO] 财务数据: 营收{f'{total_rev:.2f}' if total_rev else 'N/A'}亿元, "
               f"净利润{f'{net_prof:.2f}' if net_prof else 'N/A'}亿元")
+
+        # 2.1 检查财报状态（实际 vs 预测）
+        report_status = check_annual_report_status(financial_data)
+        financial_data['report_status'] = report_status
+        if report_status.get('warning'):
+            print(f"[WARN] {report_status['warning']}")
+        elif report_status.get('is_actual'):
+            print(f"[INFO] 财报状态: 实际发布数据 (报告日期: {financial_data.get('report_date')})")
+        else:
+            print(f"[WARN] 财报状态: 可能为预测值")
     except Exception as e:
         print(f"[WARN] 获取财务数据失败: {e}")
         financial_data = {}

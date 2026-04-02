@@ -241,7 +241,19 @@ class DataValidator:
                 self.warnings.append(f"财报日期解析失败: {e}")
         else:
             self.warnings.append("未提供财报日期，无法验证数据新鲜度")
-        
+
+        # 5b. 检查财报状态（实际 vs 预测）
+        report_status = data.get('report_status')
+        if report_status:
+            if not report_status.get('is_actual', True):
+                self.warnings.append(
+                    f"财报数据可能为预测值: {report_status.get('warning', '请核实')}"
+                )
+            if report_status.get('report_freshness') == 'very_stale':
+                self.errors.append(
+                    f"财报数据过于陈旧(>{days_diff}天)，请获取最新财报"
+                )
+
         # 6. 验证同比增长率
         revenue_growth = data.get('revenue_growth_yoy')
         if revenue_growth is not None:

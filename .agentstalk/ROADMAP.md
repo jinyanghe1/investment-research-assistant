@@ -320,13 +320,15 @@ data/
 
 ### 建议新增/修复 MCP
 
-| 工具 | 脚本 | 用途 | 优先级 |
-|------|------|------|--------|
-| fetch_stock_data | `tools/fetch_stock_data.py` | 个股数据（强制yfinance） | P0 |
-| data_validator | `tools/data_validator.py` | 数据质量校验 | P0 |
-| fetch_macro_data | `scripts/data-pipeline/fetch_macro_data.py` | 宏观数据 | P1 |
-| fetch_futures_data | `scripts/data-pipeline/fetch_futures.py` | 期货数据 | P1 |
-| generate_charts | `tools/chart_generator.py` | 图表生成 | P1 |
+| 工具 | 脚本 | 用途 | 优先级 | 状态 |
+|------|------|------|--------|------|
+| fetch_stock_data | `tools/fetch_stock_data.py` | 个股数据（强制yfinance） | P0 | ✅ |
+| data_validator | `tools/data_validator.py` | 数据质量校验 | P0 | ✅ |
+| technical_analysis | `tools/technical_analysis.py` | 基础技术指标 | P1 | ✅ |
+| technical_enhanced | `tools/technical_analysis_enhanced.py` | 增强版技术分析 | P1 | ✅ |
+| fetch_macro_data | `scripts/data-pipeline/fetch_macro_data.py` | 宏观数据 | P1 | 🔄 |
+| fetch_futures_data | `scripts/data-pipeline/fetch_futures.py` | 期货数据 | P1 | 🔄 |
+| generate_charts | `tools/chart_generator.py` | 图表生成 | P1 | ✅ |
 
 ---
 
@@ -345,13 +347,15 @@ data/
 ├── reports/                  # 研报存储
 │   └── 华工科技深度研报/     # 需修复数据
 ├── tools/                    # 工具脚本
-│   ├── fetch_index_data.py   # 已有
-│   ├── fetch_stock_data.py   # 待创建 (P0)
-│   ├── data_validator.py     # 待创建 (P0)
-│   ├── init_report.py        # 已有
-│   ├── update_index_json.py  # 已有
-│   ├── chart_style.py        # 待创建
-│   └── chart_generator.py    # 待创建
+│   ├── fetch_index_data.py   # ✅ 指数数据
+│   ├── fetch_stock_data.py   # ✅ 个股数据
+│   ├── data_validator.py     # ✅ 数据验证
+│   ├── technical_analysis.py # ✅ 基础技术指标
+│   ├── technical_analysis_enhanced.py # ✅ 增强版技术分析
+│   ├── init_report.py        # ✅ 研报初始化
+│   ├── update_index_json.py  # ✅ 知识库更新
+│   ├── chart_style.py        # ✅ 图表样式
+│   └── chart_generator.py    # ✅ 图表生成
 ├── scripts/
 │   └── data-pipeline/        # 待完善
 │       ├── fetch_macro_data.py
