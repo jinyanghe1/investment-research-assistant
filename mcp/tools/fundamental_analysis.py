@@ -389,25 +389,20 @@ def _fetch_a_share_profile(symbol: str) -> dict:
 
             if net_profit and cf_data.get("_ocf_raw"):
                 cf_data["ocf_to_profit"] = _safe_float(cf_data["_ocf_raw"] / net_profit, 2)
-            if revenue and cf_data.get("_ocf_raw"):
-                capex_val = cf_data.get("free_cash_flow")
-                if capex_val is not None and revenue != 0:
-                    ocf_raw = cf_data["_ocf_raw"]
-                    fcf_raw = ocf_raw - abs(ocf_raw - capex_val * 1e8) if capex_val else None
-                    # capex_ratio = capex / revenue
-                    capex_abs = abs(ocf_raw - (capex_val * 1e8 + ocf_raw)) if capex_val is not None else None
-                    # Simpler: use direct capex if available
+            if revenue and cf_data.get("_ocf_raw") is not None:
+                ocf_raw = cf_data["_ocf_raw"]
+                fcf_val = cf_data.get("free_cash_flow")
+                if fcf_val is not None and revenue != 0:
+                    capex = ocf_raw - fcf_val * 1e8
+                    cf_data["capex_ratio"] = _safe_float(abs(capex) / abs(revenue) * 100, 2)
     except Exception as e:
         result["_notes"].append(f"利润表数据获取失败: {e}")
 
-    # Simpler capex_ratio approach
-    if "capex_ratio" not in cf_data:
-        cf_data["capex_ratio"] = None
+    # Ensure all cash_flow fields exist
+    for key in ("capex_ratio", "ocf_to_profit", "free_cash_flow"):
+        if key not in cf_data:
+            cf_data[key] = None
     cf_data.pop("_ocf_raw", None)
-    if "ocf_to_profit" not in cf_data:
-        cf_data["ocf_to_profit"] = None
-    if "free_cash_flow" not in cf_data:
-        cf_data["free_cash_flow"] = None
     result["cash_flow"] = cf_data
 
     # ---- 3. 估值 ----
