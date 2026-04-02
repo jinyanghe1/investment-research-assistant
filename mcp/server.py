@@ -1,168 +1,91 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-MCP Server wrapper for investment-research tools.
+投研助手 MCP Server - 全链路投研工具集
 
-This is a lightweight stdio MCP server that exposes the scripts in ../tools/
-as callable MCP tools.
+提供行情数据、宏观分析、公司研究、研报生成、知识库管理等工具。
+基于 FastMCP 3.x 构建，支持 stdio / SSE 传输。
+
+启动方式:
+    python server.py                   # stdio 模式（Claude Desktop 用）
+    fastmcp run server.py              # 开发调试
+    python -m server                   # 作为模块运行
 """
 
-import asyncio
-import json
-import subprocess
 import sys
 from pathlib import Path
 
+from fastmcp import FastMCP
 
-TOOLS = {
-    "fetch_index_data": {
-        "description": "抓取A股主要指数日线数据并保存为CSV",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "index": {"type": "string", "default": "hs300,cy,sz"},
-                "output": {"type": "string", "default": "data"},
-                "days": {"type": "integer", "default": 365}
-            }
-        }
-    },
-    "init_report": {
-        "description": "初始化新研报项目，生成基于模板的HTML文件夹",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "title": {"type": "string"},
-                "author": {"type": "string", "default": "投研AI中枢"},
-                "template": {"type": "string", "default": "templates/report-template.html"},
-                "output_dir": {"type": "string", "default": "reports"}
-            },
-            "required": ["title"]
-        }
-    },
-    "update_index_json": {
-        "description": "将新研报元数据注册到 index.json",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "id": {"type": "string"},
-                "title": {"type": "string"},
-                "author": {"type": "string", "default": "投研AI中枢"},
-                "date": {"type": "string"},
-                "category": {"type": "string", "enum": ["宏观", "微观"], "default": "微观"},
-                "tags": {"type": "string"},
-                "filepath": {"type": "string"},
-                "index": {"type": "string", "default": "index.json"}
-            },
-            "required": ["id", "title", "tags", "filepath"]
-        }
+# ── 创建 MCP Server 实例 ──────────────────────────────────────────
+mcp = FastMCP(
+    "投研助手",
+    description="AI驱动的全链路投研MCP工具集：行情数据·宏观分析·公司研究·研报生成·知识库管理",
+)
+
+# ── 导入并注册所有工具模块 ──────────────────────────────────────────
+# 支持两种 import 路径：
+#   1. 从 mcp/ 目录直接运行（python server.py）
+#   2. 从上级目录运行（python -m mcp.server）
+
+def _register_all_tools():
+    """导入各工具模块并注册到 mcp 实例"""
+    tool_modules = [
+        "market_data",
+        "macro_data",
+        "company_analysis",
+        "report_generator",
+        "knowledge_base",
+    ]
+
+    for module_name in tool_modules:
+        try:
+            # 方式1: 从 mcp/ 目录运行
+            mod = __import__(f"tools.{module_name}", fromlist=["register_tools"])
+        except ImportError:
+            try:
+                # 方式2: 从上级目录运行
+                mod = __import__(f"mcp.tools.{module_name}", fromlist=["register_tools"])
+            except ImportError:
+                print(f"[投研助手] 跳过未实现的工具模块: {module_name}", file=sys.stderr)
+                continue
+
+        if hasattr(mod, "register_tools"):
+            mod.register_tools(mcp)
+            print(f"[投研助手] 已注册工具模块: {module_name}", file=sys.stderr)
+        else:
+            print(f"[投研助手] 模块 {module_name} 缺少 register_tools 函数", file=sys.stderr)
+
+
+_register_all_tools()
+
+
+# ── 内置健康检查工具 ──────────────────────────────────────────────
+@mcp.tool()
+def ping() -> str:
+    """健康检查：返回服务器状态和已注册工具列表"""
+    return "🟢 投研助手 MCP Server 运行中 | 版本 1.0.0"
+
+
+@mcp.tool()
+def list_available_tools() -> str:
+    """列出所有可用的投研工具及其说明"""
+    tool_categories = {
+        "📈 行情数据": ["get_stock_quote", "get_index_data", "get_futures_quote"],
+        "🏛️ 宏观分析": ["get_macro_indicator", "get_policy_summary", "get_economic_calendar"],
+        "🏢 公司研究": ["get_company_financials", "get_company_profile", "get_industry_chain"],
+        "📝 研报生成": ["generate_report", "init_report_project"],
+        "📚 知识库": ["search_reports", "update_index", "get_report_meta"],
+        "🔧 系统": ["ping", "list_available_tools"],
     }
-}
+    lines = ["# 投研助手 - 可用工具清单\n"]
+    for category, tools in tool_categories.items():
+        lines.append(f"\n## {category}")
+        for t in tools:
+            lines.append(f"  - `{t}`")
+    return "\n".join(lines)
 
 
-def send_message(msg: dict):
-    data = json.dumps(msg, ensure_ascii=False)
-    sys.stdout.write(f"Content-Length: {len(data)}\r\n\r\n{data}")
-    sys.stdout.flush()
-
-
-async def handle_request(req: dict):
-    method = req.get("method")
-    req_id = req.get("id")
-
-    if method == "initialize":
-        send_message({
-            "jsonrpc": "2.0",
-            "id": req_id,
-            "result": {
-                "protocolVersion": "2024-11-05",
-                "capabilities": {},
-                "serverInfo": {"name": "investment-research", "version": "0.1.0"}
-            }
-        })
-    elif method == "tools/list":
-        send_message({
-            "jsonrpc": "2.0",
-            "id": req_id,
-            "result": {"tools": [{"name": k, **v} for k, v in TOOLS.items()]}
-        })
-    elif method == "tools/call":
-        name = req["params"]["name"]
-        args = req["params"]["arguments"]
-        result = await run_tool(name, args)
-        send_message({
-            "jsonrpc": "2.0",
-            "id": req_id,
-            "result": {
-                "content": [{"type": "text", "text": result}]
-            }
-        })
-    else:
-        send_message({
-            "jsonrpc": "2.0",
-            "id": req_id,
-            "error": {"code": -32601, "message": f"Method not found: {method}"}
-        })
-
-
-async def run_tool(name: str, args: dict) -> str:
-    root = Path(__file__).parent.parent
-    if name == "fetch_index_data":
-        cmd = [
-            sys.executable, str(root / "tools" / "fetch_index_data.py"),
-            "--index", args.get("index", "hs300,cy,sz"),
-            "--output", args.get("output", "data"),
-            "--days", str(args.get("days", 365))
-        ]
-    elif name == "init_report":
-        cmd = [
-            sys.executable, str(root / "tools" / "init_report.py"),
-            "--title", args["title"],
-            "--author", args.get("author", "投研AI中枢"),
-            "--template", args.get("template", "templates/report-template.html"),
-            "--output-dir", args.get("output_dir", "reports")
-        ]
-    elif name == "update_index_json":
-        cmd = [
-            sys.executable, str(root / "tools" / "update_index_json.py"),
-            "--id", args["id"],
-            "--title", args["title"],
-            "--author", args.get("author", "投研AI中枢"),
-            "--category", args.get("category", "微观"),
-            "--tags", args["tags"],
-            "--filepath", args["filepath"],
-            "--index", args.get("index", "index.json")
-        ]
-        if "date" in args:
-            cmd.extend(["--date", args["date"]])
-    else:
-        return f"[ERROR] Unknown tool: {name}"
-
-    proc = await asyncio.create_subprocess_exec(
-        *cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-        cwd=str(root)
-    )
-    stdout, stderr = await proc.communicate()
-    output = stdout.decode("utf-8", errors="replace")
-    if stderr:
-        output += "\n[stderr] " + stderr.decode("utf-8", errors="replace")
-    return output.strip()
-
-
-async def main():
-    while True:
-        raw_length = sys.stdin.readline()
-        if not raw_length:
-            break
-        if not raw_length.startswith("Content-Length: "):
-            continue
-        length = int(raw_length.split(": ")[1].strip())
-        sys.stdin.readline()  # empty line
-        body = sys.stdin.read(length)
-        req = json.loads(body)
-        await handle_request(req)
-
-
+# ── 入口 ──────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    asyncio.run(main())
+    mcp.run(transport="stdio")

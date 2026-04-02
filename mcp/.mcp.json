@@ -8,7 +8,7 @@
   "tools": [
     {
       "name": "fetch_index_data",
-      "description": "抓取A股主要指数（沪深300、创业板指、上证指数）的日线数据，保存为CSV到data目录。无需安装pandas/akshare/yfinance。",
+      "description": "抓取A股主要指数（沪深300、创业板指、上证指数）的日线数据，保存为CSV到data目录。优先使用东财接口，失败时自动fallback到yfinance。"
       "script": "tools/fetch_index_data.py",
       "args": [
         "--index", "${index:hs300,cy,sz}",
