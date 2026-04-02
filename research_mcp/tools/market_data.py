@@ -70,6 +70,9 @@ try:
 except ImportError:
     ak = None
 
+# 禁用 curl_cffi，避免 SSL/OpenSSL 版本冲突问题
+os.environ["YFINANCE_DISABLE_CURL_CFFI"] = "1"
+
 try:
     import yfinance as yf
 except ImportError:
