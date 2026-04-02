@@ -207,7 +207,7 @@ class DataValidator:
             )
         
         # 4. 验证净利率
-        if revenue and net_profit is not None:
+        if revenue and net_profit is not None and abs(revenue) > 0.01:
             margin = net_profit / revenue
             if margin < self.PROFIT_MARGIN_MIN:
                 self.warnings.append(
@@ -291,14 +291,7 @@ class DataValidator:
             for code in peers
         }
         
-        # 中际旭创市值应大于华工科技
-        if '300308.SZ' in market_caps and '000988.SZ' in market_caps:
-            if market_caps['300308.SZ'] < market_caps['000988.SZ']:
-                self.errors.append(
-                    "市值数据异常: 中际旭创市值应大于华工科技，"
-                    f"实际 {market_caps['300308.SZ']} vs {market_caps['000988.SZ']}"
-                )
-        
+        # 移除硬编码的业务逻辑（此前瞻验证已被通用检查替代）
         # 3. 检查极端异常值
         prices = [data[code].get('current_price', 0) for code in peers]
         if prices:

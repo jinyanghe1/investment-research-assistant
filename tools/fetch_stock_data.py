@@ -184,16 +184,19 @@ def fetch_complete_stock_data(ts_code: str, verify: bool = True) -> Tuple[Dict, 
     # 1. 获取股价数据
     try:
         price_data = get_stock_price_from_yfinance(ts_code)
+        market_cap = price_data.get('market_cap')
         print(f"[INFO] 股价数据: {price_data.get('current_price')}元, "
-              f"市值: {price_data.get('market_cap'):.2f}亿元")
+              f"市值: {f'{market_cap:.2f}' if market_cap else 'N/A'}亿元")
     except Exception as e:
         return {}, False, [f"获取股价数据失败: {e}"]
     
     # 2. 获取财务数据
     try:
         financial_data = get_financial_data_from_yfinance(ts_code)
-        print(f"[INFO] 财务数据: 营收{financial_data.get('total_revenue'):.2f}亿元, "
-              f"净利润{financial_data.get('net_profit'):.2f}亿元")
+        total_rev = financial_data.get('total_revenue')
+        net_prof = financial_data.get('net_profit')
+        print(f"[INFO] 财务数据: 营收{f'{total_rev:.2f}' if total_rev else 'N/A'}亿元, "
+              f"净利润{f'{net_prof:.2f}' if net_prof else 'N/A'}亿元")
     except Exception as e:
         print(f"[WARN] 获取财务数据失败: {e}")
         financial_data = {}
