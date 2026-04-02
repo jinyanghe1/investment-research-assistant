@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>投研助手 | 研报知识库</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', 'Noto Sans SC', sans-serif; }
+    .card-hover { transition: all 0.3s ease; }
+    .card-hover:hover { transform: translateY(-4px); box-shadow: 0 12px 24px -8px rgba(0,0,0,0.15); }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- 顶部导航栏 -->
+  <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- 项目名称 -->
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-lg">
+            研
+          </div>
+          <span class="font-bold text-xl tracking-tight text-slate-900">投研助手</span>
+        </div>
+
+        <!-- 搜索框 -->
+        <div class="flex-1 max-w-md mx-4">
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+            </div>
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="搜索研报标题、标签或分类..."
+              class="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-full leading-5 bg-slate-50 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition"
+            />
+          </div>
+        </div>
+
+        <!-- 右侧占位 -->
+        <div class="hidden md:flex items-center gap-4 text-sm text-slate-500">
+          <span id="reportCount">加载中...</span>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- 主体内容 -->
+  <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
+    <!-- 标题区 -->
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-slate-900">研报知识库</h1>
+      <p class="mt-2 text-slate-500">基于微观基本面与宏观政经数据的独家产业研报集合</p>
+    </div>
+
+    <!-- 分类筛选标签 -->
+    <div class="flex flex-wrap gap-2 mb-8" id="categoryFilters">
+      <button data-filter="all" class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium bg-indigo-600 text-white">全部</button>
+      <button data-filter="宏观" class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-200 hover:bg-slate-50">宏观</button>
+      <button data-filter="微观" class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-200 hover:bg-slate-50">微观</button>
+    </div>
+
+    <!-- 研报卡片网格 -->
+    <div id="reportGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- 动态渲染 -->
+    </div>
+
+    <!-- 无结果提示 -->
+    <div id="emptyState" class="hidden text-center py-20">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 mb-4">
+        <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      <h3 class="text-lg font-medium text-slate-900">未找到相关研报</h3>
+      <p class="mt-1 text-slate-500">请尝试更换关键词或清除筛选条件</p>
+    </div>
+  </main>
+
+  <!-- 页脚 -->
+  <footer class="bg-white border-t border-slate-200 py-8">
+    <div class="max-w-7xl mx-auto px-4 text-center text-sm text-slate-500">
+      &copy; 2026 投研助手 · 金融级专业研报知识库
+    </div>
+  </footer>
+
+  <script>
+    let allReports = [];
+    let currentCategory = 'all';
+
+    async function loadReports() {
+      try {
+        const res = await fetch('index.json');
+        if (!res.ok) throw new Error('无法加载 index.json');
+        allReports = await res.json();
+        renderReports();
+      } catch (err) {
+        document.getElementById('reportGrid').innerHTML = `
+          <div class="col-span-full text-center py-12 text-red-500">
+            数据加载失败：${err.message}
+          </div>
+        `;
+      }
+    }
+
+    function renderReports() {
+      const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+      const grid = document.getElementById('reportGrid');
+      const empty = document.getElementById('emptyState');
+
+      const filtered = allReports.filter(r => {
+        const matchCategory = currentCategory === 'all' || r.category === currentCategory;
+        const matchKeyword = !keyword ||
+          r.title.toLowerCase().includes(keyword) ||
+          r.tags.some(t => t.toLowerCase().includes(keyword)) ||
+          r.category.toLowerCase().includes(keyword);
+        return matchCategory && matchKeyword;
+      });
+
+      document.getElementById('reportCount').textContent = `共 ${filtered.length} 篇研报`;
+
+      if (filtered.length === 0) {
+        grid.innerHTML = '';
+        empty.classList.remove('hidden');
+        return;
+      }
+
+      empty.classList.add('hidden');
+      grid.innerHTML = filtered.map(r => `
+        <a href="${r.filePath}" class="block bg-white rounded-2xl border border-slate-200 p-6 card-hover group">
+          <div class="flex items-start justify-between mb-4">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${r.category === '宏观' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">
+              ${r.category}
+            </span>
+            <span class="text-xs text-slate-400">${r.date}</span>
+          </div>
+          <h3 class="text-lg font-semibold text-slate-900 mb-2 line-clamp-2 group-hover:text-indigo-600 transition">${r.title}</h3>
+          <p class="text-sm text-slate-500 mb-4">作者：${r.author}</p>
+          <div class="flex flex-wrap gap-2">
+            ${r.tags.map(t => `<span class="px-2 py-1 rounded-md bg-slate-100 text-slate-600 text-xs">${t}</span>`).join('')}
+          </div>
+        </a>
+      `).join('');
+    }
+
+    // 搜索监听
+    document.getElementById('searchInput').addEventListener('input', renderReports);
+
+    // 分类筛选监听
+    document.getElementById('categoryFilters').addEventListener('click', e => {
+      if (e.target.classList.contains('filter-btn')) {
+        currentCategory = e.target.dataset.filter;
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+          btn.classList.remove('bg-indigo-600', 'text-white');
+          btn.classList.add('bg-white', 'text-slate-600', 'border', 'border-slate-200');
+        });
+        e.target.classList.remove('bg-white', 'text-slate-600', 'border', 'border-slate-200');
+        e.target.classList.add('bg-indigo-600', 'text-white');
+        renderReports();
+      }
+    });
+
+    loadReports();
+  </script>
+</body>
+</html>

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{REPORT_TITLE}} | 投研助手</title>
+  <style>
+    :root {
+      --primary-color: #1a3a5c;
+      --secondary-color: #2c5282;
+      --accent-color: #c53030;
+      --bg-color: #f7fafc;
+      --card-bg: #ffffff;
+      --text-color: #2d3748;
+      --muted-color: #718096;
+      --border-color: #e2e8f0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      line-height: 1.75;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+    /* 封面 */
+    .cover {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+      color: #fff;
+      padding: 80px 40px;
+      border-radius: 12px;
+      text-align: center;
+      margin-bottom: 32px;
+      box-shadow: 0 10px 25px rgba(26,58,92,0.15);
+    }
+    .cover h1 {
+      font-size: 2.25rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      letter-spacing: 1px;
+    }
+    .cover .meta {
+      font-size: 0.95rem;
+      opacity: 0.9;
+      margin-bottom: 8px;
+    }
+    .cover .disclaimer {
+      margin-top: 32px;
+      font-size: 0.8rem;
+      opacity: 0.75;
+      line-height: 1.6;
+      border-top: 1px solid rgba(255,255,255,0.2);
+      padding-top: 20px;
+    }
+    /* 章节通用 */
+    .section {
+      background: var(--card-bg);
+      border-radius: 10px;
+      padding: 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    }
+    .section h2 {
+      font-size: 1.4rem;
+      color: var(--primary-color);
+      border-left: 4px solid var(--secondary-color);
+      padding-left: 14px;
+      margin-bottom: 20px;
+    }
+    .section h3 {
+      font-size: 1.1rem;
+      color: var(--secondary-color);
+      margin: 20px 0 10px;
+    }
+    .section p {
+      margin-bottom: 12px;
+      text-align: justify;
+    }
+    .section ul, .section ol {
+      margin-left: 22px;
+      margin-bottom: 14px;
+    }
+    .section li {
+      margin-bottom: 6px;
+    }
+    /* 高亮框 */
+    .highlight-box {
+      background: #fffaf0;
+      border-left: 4px solid #dd6b20;
+      padding: 16px 20px;
+      border-radius: 0 8px 8px 0;
+      margin: 16px 0;
+    }
+    .risk-box {
+      background: #fff5f5;
+      border-left: 4px solid var(--accent-color);
+      padding: 16px 20px;
+      border-radius: 0 8px 8px 0;
+      margin: 16px 0;
+    }
+    .data-note {
+      font-size: 0.8rem;
+      color: var(--muted-color);
+      margin-top: 8px;
+      font-style: italic;
+    }
+    /* 图表占位 */
+    .chart-placeholder {
+      background: #edf2f7;
+      border: 2px dashed #cbd5e0;
+      border-radius: 10px;
+      height: 320px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted-color);
+      font-size: 0.95rem;
+      margin: 16px 0;
+    }
+    /* 结论表格 */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 0.95rem;
+    }
+    th, td {
+      border: 1px solid var(--border-color);
+      padding: 12px 14px;
+      text-align: left;
+    }
+    th {
+      background: #f7fafc;
+      font-weight: 600;
+      color: var(--primary-color);
+    }
+    /* 标签 */
+    .tag {
+      display: inline-block;
+      background: var(--secondary-color);
+      color: #fff;
+      font-size: 0.75rem;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-right: 6px;
+      margin-bottom: 6px;
+    }
+    /* 页脚 */
+    .footer {
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted-color);
+      padding: 24px 0 40px;
+    }
+    @media (max-width: 640px) {
+      .cover { padding: 48px 20px; }
+      .cover h1 { font-size: 1.6rem; }
+      .section { padding: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 封面 -->
+    <section class="cover">
+      <h1>{{REPORT_TITLE}}</h1>
+      <p class="meta">作者：{{AUTHOR}} &nbsp;|&nbsp; 发布日期：{{DATE}}</p>
+      <p class="meta">分类：{{CATEGORY}} &nbsp;|&nbsp; 评级：{{RATING}}</p>
+      <div class="tags" style="margin-top:12px;">
+        <!-- {{TAGS}} -->
+      </div>
+      <div class="disclaimer">
+        <strong>免责声明：</strong>本报告仅供参考，不构成任何投资建议。报告中的观点、数据和预测基于公开信息及模型推演，投资者应独立判断并自行承担风险。过往表现不代表未来收益，市场有风险，投资需谨慎。
+      </div>
+    </section>
+
+    <!-- 投资要点摘要 -->
+    <section class="section">
+      <h2>一、投资要点摘要</h2>
+      <div class="highlight-box">
+        <strong>核心结论：</strong>{{CORE_CONCLUSION}}
+      </div>
+      <ul>
+        <li><strong>宏观层面：</strong>{{MACRO_HIGHLIGHT}}</li>
+        <li><strong>行业层面：</strong>{{INDUSTRY_HIGHLIGHT}}</li>
+        <li><strong>公司/标的选择：</strong>{{COMPANY_HIGHLIGHT}}</li>
+        <li><strong>操作建议：</strong>{{ACTION_HIGHLIGHT}}</li>
+      </ul>
+    </section>
+
+    <!-- 宏观政经分析 -->
+    <section class="section">
+      <h2>二、宏观政经分析</h2>
+      <h3>2.1 政策周期与监管动向</h3>
+      <p>{{POLICY_ANALYSIS}}</p>
+      <h3>2.2 全球经济与流动性环境</h3>
+      <p>{{GLOBAL_MACRO_ANALYSIS}}</p>
+      <h3>2.3 宏观变量对目标行业的影响映射</h3>
+      <p>{{MACRO_INDUSTRY_MAPPING}}</p>
+      <p class="data-note">数据来源：国家统计局、央行货币政策执行报告、Wind、Bloomberg（数据截至{{DATA_DATE}}）</p>
+    </section>
+
+    <!-- 行业/公司基本面分析 -->
+    <section class="section">
+      <h2>三、行业/公司基本面分析</h2>
+      <h3>3.1 产业链结构与景气度</h3>
+      <p>{{INDUSTRY_CHAIN_ANALYSIS}}</p>
+      <h3>3.2 供需格局与价格走势</h3>
+      <p>{{SUPPLY_DEMAND_ANALYSIS}}</p>
+      <h3>3.3 核心财务与运营指标</h3>
+      <p>{{FINANCIAL_ANALYSIS}}</p>
+      <p class="data-note">注：数据为模型推演或公开财报整理，关键假设已在文中标注。</p>
+    </section>
+
+    <!-- 数据图表占位区 -->
+    <section class="section">
+      <h2>四、数据图表与可视化</h2>
+      <h3>4.1 核心指标时间序列</h3>
+      <div class="chart-placeholder">[图表占位区] 请插入核心指标走势图（如产能利用率、价格、库存等）</div>
+      <h3>4.2 行业比较/产业链利润分布</h3>
+      <div class="chart-placeholder">[图表占位区] 请插入产业链利润分布或同业比较图</div>
+      <h3>4.3 关键数据表</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>指标名称</th>
+            <th>当期值</th>
+            <th>环比变动</th>
+            <th>同比变动</th>
+            <th>备注</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>{{METRIC_1_NAME}}</td>
+            <td>{{METRIC_1_VALUE}}</td>
+            <td>{{METRIC_1_QOQ}}</td>
+            <td>{{METRIC_1_YOY}}</td>
+            <td>{{METRIC_1_NOTE}}</td>
+          </tr>
+          <tr>
+            <td>{{METRIC_2_NAME}}</td>
+            <td>{{METRIC_2_VALUE}}</td>
+            <td>{{METRIC_2_QOQ}}</td>
+            <td>{{METRIC_2_YOY}}</td>
+            <td>{{METRIC_2_NOTE}}</td>
+          </tr>
+          <tr>
+            <td>{{METRIC_3_NAME}}</td>
+            <td>{{METRIC_3_VALUE}}</td>
+            <td>{{METRIC_3_QOQ}}</td>
+            <td>{{METRIC_3_YOY}}</td>
+            <td>{{METRIC_3_NOTE}}</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 风险提示 -->
+    <section class="section">
+      <h2>五、风险提示</h2>
+      <div class="risk-box">
+        <ol>
+          <li><strong>政策风险：</strong>{{POLICY_RISK}}</li>
+          <li><strong>市场风险：</strong>{{MARKET_RISK}}</li>
+          <li><strong>数据风险：</strong>{{DATA_RISK}}</li>
+          <li><strong>模型风险：</strong>{{MODEL_RISK}}</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- 结论与操作建议 -->
+    <section class="section">
+      <h2>六、结论与操作建议</h2>
+      <p>{{FINAL_CONCLUSION}}</p>
+      <table>
+        <thead>
+          <tr>
+            <th>标的/板块</th>
+            <th>评级</th>
+            <th>核心逻辑</th>
+            <th>目标价位/区间</th>
+            <th>止损/风控建议</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>{{TARGET_1}}</td>
+            <td>{{RATING_1}}</td>
+            <td>{{LOGIC_1}}</td>
+            <td>{{PRICE_1}}</td>
+            <td>{{RISK_CTRL_1}}</td>
+          </tr>
+          <tr>
+            <td>{{TARGET_2}}</td>
+            <td>{{RATING_2}}</td>
+            <td>{{LOGIC_2}}</td>
+            <td>{{PRICE_2}}</td>
+            <td>{{RISK_CTRL_2}}</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <div class="footer">
+      &copy; {{YEAR}} 投研助手 | 本报告由AI投研系统生成，仅供参考
+    </div>
+  </div>
+</body>
+</html>
