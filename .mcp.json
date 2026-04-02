@@ -4,7 +4,7 @@
       "command": "python3",
       "args": [
         "-m",
-        "mcp.server"
+        "research_mcp.server"
       ],
       "cwd": "/Users/hejinyang/投研助手",
       "env": {
