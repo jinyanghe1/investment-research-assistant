@@ -1,114 +1,386 @@
-# 投研助手路线图 v1.1
+# 投研助手路线图 v2.0
 
 > 创建时间：2026-04-02
-> 更新日期：2026-04-02
-> 更新说明：添加P0级数据质量问题修复项
+> 更新日期：2026-04-02 (v2.0 — 项目经理全面审计版)
+> 版本历史：v1.0 初版 → v1.1 添加P0数据质量修复 → **v2.0 全面审计+阶段重规划**
 
 ---
 
-## 一、核心需求与实现路径
+## 一、项目总览
 
-### 1.1 可靠的新闻来源（实时数据）
+**投研助手** 是一个多智能体协作的金融投研平台，通过 MCP Server 集成数据获取、基本面/技术面分析、HTML 研报生成及前端知识库，目标是产出具有实操指导意义的独家产业研报。**当前处于"功能MVP已就绪、工程化加固进行中"阶段**——核心投研流水线已跑通首份深度研报，但测试覆盖、数据可靠性保障、以及研报内容多元化仍是下一阶段重点。
 
-#### 数据源清单
+---
 
-| 来源 | 类型 | 优先级 | 获取方式 |
-|------|------|--------|----------|
-| **财新** | 中文财经深度 | P0 | WebSearch |
-| **华尔街见闻** | 实时全球财经 | P0 | WebSearch |
-| **雪球** | 投资者社区 | P1 | WebSearch |
-| **东方财富/同花顺** | 行情+资讯 | P1 | 已有API |
-| **FT / Bloomberg / Reuters** | 英文权威媒体 | P1 | WebSearch |
-| **国家统计局** | 官方宏观数据 | P0 | AKShare封装 |
-| **国务院/证监会/央行** | 政策文件 | P0 | WebSearch |
+## 二、已完成里程碑（按时间线）
 
-#### 关键词搜索策略
+### 里程碑 1：基础设施搭建 (04-02 早间)
+
+| 时间 | 完成项 | 负责Agent |
+|------|--------|-----------|
+| 08:00 | 项目初始化：AGENTS.md、README.md、目录结构 | coord_agent |
+| 08:00 | 前端 Landing Page：index.html + index.json + 示例研报 | frontend_agent |
+| 08:00 | SOP文档：研报撰写SOP.md、多Agent协作SOP.md | content_agent |
+| 08:00 | 基础工具链：fetch_index_data.py、init_report.py、update_index_json.py | tools_agent |
+| 08:00 | MCP配置：mcp/.mcp.json + README.md | tools_agent |
+| 08:00 | HTML 研报模板：templates/report-template.html | content_agent |
+
+### 里程碑 2：MCP Server v0.1.0 功能基线 (04-02 08:00-08:20)
+
+| 完成项 | 详情 |
+|--------|------|
+| MCP Server 16个工具 | 数据获取8个 + 分析3个 + 研报生成3个 + 知识库2个 |
+| 架构审查 (archreview) | 修复3个Critical + 3个High + 1个Medium 问题 |
+| 技术对标 (techresearch) | 对标7个GitHub开源MCP项目，产出改进建议 |
+| SOP质量评估框架 | 10+5维评分矩阵（满分150分），当前评分104/150 |
+| 脚本质量验证体系 | 推荐ruff + mypy + pytest + Pandera工具链 |
+| 迭代闭环方法论 | 8节点迭代架构 + 3套Agent评审Prompt模板 |
+
+### 里程碑 3：Phase 2 工程加固 (04-02 08:20-09:35)
+
+| 完成项 | 详情 |
+|--------|------|
+| Pydantic配置管理 | `research_mcp/config.py` — BaseSettings + 环境变量前缀 MCP_ |
+| 统一错误处理 | `research_mcp/utils/errors.py` — @handle_errors 装饰器 100% 覆盖 |
+| 工具函数可测试化 | 所有 fetch_* 提取为模块级纯函数 + register_tools 薄包装器 |
+| Phase 2 代码审查 | 重构质量 4.5/5，16 工具注册通过 |
+| MCP Server 扩展至 29 个工具 | 新增: ETF/可转债/期货/基本面/技术分析/信号 等13个工具 |
+| MCP三端安装 | Claude Desktop + Kimi CLI + VS Code Copilot 全部配置完毕 |
+| 测试基础设施 | pytest 框架 + conftest.py + 12个测试文件，186 passed |
+
+### 里程碑 4：数据管道 & 工具完善 (04-02 09:00-12:00)
+
+| 完成项 | 详情 |
+|--------|------|
+| 数据管道脚本 | fetch_macro_data.py / fetch_stock_daily.py / fetch_futures.py |
+| UBS 绘图工具 | chart_style.py + chart_generator.py + ubs.mplstyle |
+| 技术分析工具 | 基础版(8大指标) + 增强版(形态识别/融资融券/评分系统) |
+| 基本面调研方法论 | 7大分析维度覆盖度评估 + _EM→_THS fallback 策略 |
+| NumPy兼容性修复 | requirements.txt 锁定 numpy<2，解决 _ARRAY_API 崩溃 |
+| 市值币种标注修复 | 新增 market_cap_unit 字段（亿CNY/USD/HKD） |
+
+### 里程碑 5：首份深度研报 (04-02 15:30-16:45)
+
+| 完成项 | 详情 |
+|--------|------|
+| 华工科技(000988.SZ)数据收集 | 6个JSON数据文件，4个Agent并行，22分钟完成 |
+| 华工科技深度研报 | ~4,500字，含行业竞争格局+三大业务拆解+估值分析 |
+| 多Agent协作验证 | DataAgent + ResearchAgent + MacroAgent + HubAgent 并行流水线验证 |
+
+### 里程碑 6：P0 数据质量修复 & 自动化 (04-02 16:00-19:30)
+
+| 完成项 | 详情 |
+|--------|------|
+| 数据质量SOP | SOP/数据获取SOP.md — 强制yfinance + 验证checklist |
+| 数据验证中间件 | tools/data_validator.py — 股价/市值/PE范围校验 |
+| 代码审查报告 | CODE_REVIEW_REPORT.md — P0/P1/P2分级问题清单 |
+| 多Agent并行任务 | MCP-Fixer(导入修复) + Pipeline-Auto(crontab/logrotate) + Template-Enhancer(模板增强) |
+| 数据管道自动化 | crontab配置 + run.sh统一运行脚本 + logrotate日志轮转 |
+| 研报模板增强 | 图表占位符/风险提示/同业对比表/分析师栏/页脚增强 样式 |
+| 质量评分常量驱动化 | _QUALITY_CRITERIA 常量替代硬编码评分逻辑 |
+
+### 里程碑 7：其他研报产出 (04-02 全天)
+
+| 研报 | ID | 状态 |
+|------|----|------|
+| 新能源汽车产业链2026Q1基本面追踪 | RPT-2026-001 | ✅ 已发布 |
+| AI算力产业链景气度跟踪 | RPT-2026-002 | ✅ 已发布 |
+| 华工科技深度研究报告 | RPT-2026-003 | ✅ 已发布 |
+| ICT行业2026-2027业绩展望 | — | ✅ 文件存在，未注册到index.json |
+
+### 里程碑 8：附加调研报告
+
+| 报告 | 内容 |
+|------|------|
+| Git历史清理调研 | git-filter-repo vs BFG 对比，推荐方案 |
+| 政策监控模块 | policy_monitor/core.py + websites.yaml + SOP.md |
+
+---
+
+## 三、当前状态评估
+
+### 3.1 模块成熟度矩阵
+
+| 模块 | 成熟度 | 说明 |
+|------|--------|------|
+| **MCP Server (research_mcp)** | 🟢 完善 | 29个工具，Pydantic配置，统一错误处理，186测试通过 |
+| **数据获取层** | 🟡 基本可用 | yfinance/akshare双源，但缓存未启用，日期过滤部分缺失 |
+| **数据验证** | 🟢 完善 | data_validator.py 覆盖股价/市值/PE/财报日期验证 |
+| **技术分析** | 🟢 完善 | 8大指标 + 形态识别 + 综合评分，MCP工具已注册 |
+| **基本面分析** | 🟡 基本可用 | 7维覆盖，_EM→_THS fallback，但估值分位数/客户集中度待补 |
+| **研报生成** | 🟡 基本可用 | Markdown→HTML，模板增强，但图表嵌入仍需手动 |
+| **前端知识库** | 🟡 基本可用 | index.html 搜索/筛选可用，缺分页/排序/移动端优化 |
+| **数据管道自动化** | 🟡 基本可用 | crontab/run.sh/logrotate 已配置，未实际部署验证 |
+| **SOP文档体系** | 🟡 基本可用 | 4份SOP(研报/数据/协作/政策)，评分104/150 |
+| **测试覆盖** | 🟡 基本可用 | research_mcp 186测试通过，但 tools/ scripts/ 零测试 |
+| **CI/CD** | 🔴 需改进 | 无GitHub Actions，无pre-commit hooks |
+| **环境管理** | 🔴 需改进 | 运行在conda base环境，未创建项目专属venv |
+| **政策监控** | 🔴 需改进 | 框架代码存在，配置硬编码，未集成到MCP |
+| **研报内容多元化** | 🔴 需改进 | 仅有微观/产业链研报，缺宏观策略/期货/晨会纪要 |
+| **图表自动化** | 🔴 需改进 | chart_generator存在但未与研报生成流水线集成 |
+
+### 3.2 量化指标
+
+| 指标 | 数值 |
+|------|------|
+| MCP 工具总数 | 29 |
+| 核心代码行数 | ~5,000+ 行 (research_mcp + tools + scripts) |
+| 测试通过数 | 186 passed, 1 skipped |
+| 已发布研报 | 4 份 (3份已注册index.json) |
+| SOP文档 | 4 份 |
+| .agentstalk通信记录 | 30+ 份 |
+| Python依赖 | 8 个核心包 (numpy<2 已锁定) |
+| MCP客户端覆盖 | 3端 (Claude Desktop / Kimi CLI / VS Code) |
+
+---
+
+## 四、下一阶段规划
+
+### Phase 4：工程稳固 & 数据可靠性 (优先级 P0)
+
+> **目标**：确保数据正确性与系统可靠性，消除"研报数据不可信"的根本风险
+
+#### 任务清单
+
+| # | 任务 | 详情 | 依赖 | 验收标准 |
+|---|------|------|------|----------|
+| 4.1 | **创建项目虚拟环境** | `python3 -m venv .venv`，从 conda base 迁移 | 无 | `.venv/` 可正常运行所有脚本和MCP Server |
+| 4.2 | **启用缓存系统** | 将 `utils/cache.py` 集成到高频数据获取工具中 (尤其是 macro_china/macro_global) | 无 | 宏观数据overview模式响应 <5s (当前串行7个API极慢) |
+| 4.3 | **数据管道日期过滤修复** | fetch_futures.py 的 start_date/end_date 参数实际生效 | 无 | `--start_date 20240101 --end_date 20260101` 返回正确范围 |
+| 4.4 | **ICT研报注册到index.json** | 将已存在的 ICT 行业研报注册到知识库 | 无 | index.json含该条目，Landing Page可见 |
+| 4.5 | **测试报告条目清理** | 删除 index.json 中的测试条目 (RPT-20260402193234) | 无 | index.json 无测试数据 |
+| 4.6 | **pre-commit hooks** | 安装 ruff + 基础 lint 检查 | 4.1 | `git commit` 自动触发格式检查 |
+
+### Phase 5：测试 & 质量门禁 (优先级 P1)
+
+> **目标**：建立自动化质量保障体系，防止回归
+
+#### 任务清单
+
+| # | 任务 | 详情 | 依赖 | 验收标准 |
+|---|------|------|------|----------|
+| 5.1 | **tools/ 目录单元测试** | 为 fetch_stock_data / data_validator / technical_analysis 编写 pytest 用例 | Phase 4 | 工具模块测试覆盖率 > 60% |
+| 5.2 | **数据管道集成测试** | mock akshare/yfinance 的端到端测试 | Phase 4 | scripts/data-pipeline/ 有对应测试 |
+| 5.3 | **Markdown→HTML 单元测试** | 为 _md_to_html 手写解析器编写专项测试 | 无 | 覆盖所有 block 类型 (代码块/表格/标题/列表) |
+| 5.4 | **GitHub Actions CI** | push/PR 触发 lint + test | 5.1 | CI badge 绿色 |
+| 5.5 | **数据质量 Pandera 规则** | 为宏观/个股数据定义 Schema 约束 | 5.1 | 异常数据自动阻断 |
+
+### Phase 6：研报产能 & 内容多元化 (优先级 P1)
+
+> **目标**：扩大研报覆盖面，验证投研流水线的通用性
+
+#### 任务清单
+
+| # | 任务 | 详情 | 依赖 | 验收标准 |
+|---|------|------|------|----------|
+| 6.1 | **宏观策略研报** | 2026Q2全球宏观展望（CPI/PMI/美联储/中国政策周期） | 无 | 已发布HTML + 注册index.json |
+| 6.2 | **期货专题研报** | 铜/原油/黄金基本面追踪（利用已有期货数据工具） | 无 | 已发布HTML + 利用 get_futures_* MCP工具 |
+| 6.3 | **多模板支持** | 宏观策略模板 / 晨会纪要模板 / 行业比较模板 | 无 | templates/ 目录下3个以上模板 |
+| 6.4 | **研报图表自动嵌入** | chart_generator → SVG/Base64 → HTML 内联 | 无 | 研报中包含至少1张自动生成的图表 |
+| 6.5 | **个股深度研报MCP流水线** | 封装"选题→数据→分析→撰写→发布"全流程为可复用MCP | 6.1-6.4 | 一句话触发自动生成深度研报 |
+
+### Phase 7：MCP Server 工程优化 (优先级 P2)
+
+> **目标**：提升MCP Server的健壮性和可维护性
+
+#### 任务清单
+
+| # | 任务 | 详情 | 依赖 | 验收标准 |
+|---|------|------|------|----------|
+| 7.1 | **消除重复代码** | _read_index (D1) / _df_to_records (D5,D10) / 宏观指标闭包 (D2) 等 | 无 | 重复代码 <50行 (当前~400行) |
+| 7.2 | **Pydantic Input/Output 模型** | 为核心工具添加输入验证和类型安全 | 无 | 至少5个工具有 I/O 模型 |
+| 7.3 | **akshare/yfinance helper统一** | 提取 try_akshare_apis / yf_price_snapshot 通用函数 | 7.1 | 4处 akshare fallback 和 5处 yfinance 重复消除 |
+| 7.4 | **screen_stocks 拆分** | 158行巨型函数 → 纯函数 filter/sort/format | 7.1 | 最大函数 <50 行 |
+| 7.5 | **pyproject.toml 规范化** | 替代 requirements.txt，统一项目元数据 | 无 | `pip install -e .` 可用 |
+| 7.6 | **条件性工具加载** | 按数据源可用性动态启用/禁用工具 | 7.2 | 无 akshare 环境仍可启动 Server |
+
+### Phase 8：生态扩展 (优先级 P3)
+
+> **目标**：平台能力延伸
+
+#### 任务清单
+
+| # | 任务 | 详情 | 依赖 |
+|---|------|------|------|
+| 8.1 | 政策监控集成 | policy_monitor 配置外置 + 接入MCP工具 | Phase 7 |
+| 8.2 | PDF导出 | HTML → PDF（weasyprint/puppeteer） | Phase 6 |
+| 8.3 | 研报版本管理 | 修订/更新/撤回机制 | Phase 6 |
+| 8.4 | 估值历史分位数 | PE/PB 历史分位数计算工具 | Phase 7 |
+| 8.5 | WebSocket 实时推送 | 行情实时订阅 | Phase 7 |
+| 8.6 | 多Agent研报交叉审核 | Agent互相审阅、质疑、修正 | Phase 6 |
+| 8.7 | Docker 集成测试 | 多数据源端到端验证 | Phase 5 |
+
+---
+
+## 五、技术债务清单
+
+| # | 技术债 | 严重度 | 来源 | 建议处理时间 |
+|---|--------|--------|------|-------------|
+| TD-1 | **缓存已实现但未使用** — `utils/cache.py` DataCache 类功能完整，但16→29个工具函数均未调用 | 🟠 高 | Phase 2 代码审查 | Phase 4 |
+| TD-2 | **重复代码 ~400行** — _read_index / _df_to_records / 14个宏观闭包 / _safe_float 等 | 🟠 高 | Phase 2 基线审查 | Phase 7 |
+| TD-3 | **screen_stocks 158行巨函数** — 高圈复杂度，列名映射硬编码 | 🟡 中 | Phase 2 基线审查 | Phase 7 |
+| TD-4 | **tools/ scripts/ 零测试** — MCP外的脚本无任何自动化测试保障 | 🟠 高 | 代码审查报告 | Phase 5 |
+| TD-5 | **运行在conda base环境** — 全局依赖冲突风险 | 🟡 中 | 兼容性修复通信 | Phase 4 |
+| TD-6 | **UBS绘图样式双源** — chart_style.py 与 ubs.mplstyle 配色定义重复 | 🟡 中 | dev_review 报告 | Phase 7 |
+| TD-7 | **index.json含测试数据** — 测试条目(RPT-20260402193234)未清理 | 🟢 低 | 当前审计 | Phase 4 |
+| TD-8 | **ICT研报未注册** — 文件存在但 index.json 无对应条目 | 🟢 低 | 当前审计 | Phase 4 |
+| TD-9 | **fcntl 仅Unix** — report_generator.py 文件锁跨平台不兼容 | 🟢 低 | 代码审查 | Phase 8+ |
+| TD-10 | **policy_monitor 配置硬编码** — websites.yaml 路径硬编码在 core.py 中 | 🟡 中 | 代码审查报告 | Phase 8 |
+| TD-11 | **_apply_period_data 性能隐患** — 循环调用最多60次网络请求无超时/采样限制 | 🟡 中 | Phase 2 基线审查 | Phase 7 |
+| TD-12 | **.venv/ 误提交到 Git 历史** — 仓库体积膨胀，已有 git-filter-repo 清理方案 | 🟡 中 | Git清理调研 | Phase 4 |
+
+---
+
+## 六、风险项
+
+| # | 风险 | 可能性 | 影响 | 缓解措施 |
+|---|------|--------|------|----------|
+| R-1 | **akshare API 名称变更** — akshare 频繁更新，函数名可能失效 | 🟠 高 | 数据获取工具批量失效 | 多API名称 fallback 机制(已有) + 版本锁定 + 定期回归测试 |
+| R-2 | **yfinance A股数据不稳定** — 部分代码(如创业板指399006.SZ)历史数据获取失败 | 🟡 中 | 部分个股/指数无法获取 | 双源 fallback(yfinance→akshare) + 数据缓存 |
+| R-3 | **NumPy 2.x 生态迁移** — 当前锁定 numpy<2，但上游包终将要求 numpy≥2 | 🟡 中 | 长期依赖锁定不可持续 | 定期测试 numpy 2.x 兼容性，跟踪 pandas/pyarrow 更新 |
+| R-4 | **研报数据失真复发** — Agent 绕过验证中间件 | 🟡 中 | 投资决策错误 | DataValidator 强制门禁 + SOP 约束 + 人工抽检 |
+| R-5 | **Git 历史膨胀** — .venv/ 未清理，仓库体积大 | 🟢 低 | clone 缓慢 | 执行 git-filter-repo 清理方案(已调研) |
+| R-6 | **单点依赖** — 项目依赖免费API，无付费数据源备份 | 🟡 中 | 数据质量上限有限 | 后续考虑 Tushare Pro / Wind 付费接入 |
+
+---
+
+## 七、MCP 工具全景 (29个)
+
+### 行情数据 (10)
+| 工具 | 功能 | 数据源 |
+|------|------|--------|
+| get_stock_realtime | A/港/美实时行情 | akshare + yfinance |
+| get_stock_history | 历史K线 | akshare + yfinance |
+| get_index_quote | 主要股指 | akshare + yfinance |
+| get_forex | 汇率 | akshare |
+| get_commodity | 大宗商品 | akshare + yfinance |
+| get_etf_realtime | ETF实时 | akshare |
+| get_etf_history | ETF历史 | akshare |
+| get_convertible_bond | 可转债 | akshare |
+| get_futures_realtime | 期货实时 | akshare |
+| get_futures_history | 期货历史 | akshare |
+
+### 期货专项 (2)
+| get_futures_position | 持仓数据 | akshare |
+| get_futures_basis | 基差数据 | akshare |
+
+### 宏观分析 (3)
+| get_macro_china | 中国宏观(GDP/CPI/PMI/M2等) | akshare |
+| get_macro_global | 全球宏观(美联储/CPI/非农等) | akshare |
+| get_fund_flow | 北向资金/行业资金流向 | akshare |
+
+### 公司研究 (7)
+| get_company_financials | 三大报表+核心指标 | akshare + yfinance |
+| screen_stocks | 多条件选股 | akshare |
+| get_industry_ranking | 行业景气度排名 | akshare |
+| get_fundamental_profile | 基本面画像 | akshare |
+| get_peer_comparison | 同行对标 | akshare |
+| get_shareholder_analysis | 股东分析 | akshare |
+| get_valuation_percentile | 估值分位 | akshare |
+
+### 技术分析 (2)
+| get_technical_indicators | 8大指标计算 | 内置计算 |
+| get_technical_signal | 加权共识信号 | 内置计算 |
+
+### 研报生成 (3)
+| generate_report | Markdown→HTML研报 | 内置 |
+| create_data_table | 数据表格生成 | 内置 |
+| register_report | 注册研报到index.json | 内置 |
+
+### 知识库 (2)
+| list_reports | 列出/筛选研报 | 内置 |
+| search_reports | 关键词搜索 | 内置 |
+
+---
+
+## 八、文件结构 (当前)
 
 ```
-# 宏观政策
-"中国经济" OR "GDP" site:gov.cn
-"证监会" OR "银保监" filetype:pdf
-
-# 行业公司
-"行业研究" OR "研报" filetype:pdf
-"公司名称" AND ("业绩" OR "财报" OR "营收")
+投研助手/
+├── .agentstalk/              # Agent协作目录 (30+ 通信记录)
+│   ├── ROADMAP.md            # 本文件
+│   ├── archived/             # 归档通信
+│   └── backups/              # 回滚备份
+├── index.html                # Landing Page ✅
+├── index.json                # 研报索引 (4条，含1条测试待清理) ⚠️
+├── AGENTS.md                 # Agent系统定义 ✅
+├── README.md                 # 项目说明 ✅
+├── requirements.txt          # Python依赖 (numpy<2 已锁定) ✅
+├── CODE_REVIEW_REPORT.md     # 代码审查报告 ✅
+├── MCP_INSTALL.md            # MCP安装指南 ✅
+│
+├── research_mcp/             # MCP Server 主体 ✅
+│   ├── server.py             # FastMCP入口
+│   ├── config.py             # Pydantic BaseSettings
+│   ├── tools/                # 10个工具模块 (29个MCP工具)
+│   ├── utils/                # 缓存/格式化/错误处理
+│   ├── templates/            # 研报HTML模板
+│   ├── tests/                # 12个测试文件, 186 passed
+│   └── requirements.txt      # MCP专用依赖
+│
+├── SOP/                      # 标准作业程序 ✅
+│   ├── 研报撰写SOP.md
+│   ├── 数据获取SOP.md
+│   ├── 多Agent协作SOP.md
+│   ├── 政策获取SOP.md
+│   └── sources/              # 数据源参考
+│
+├── reports/                  # 研报存储 (3份研报)
+│   ├── 新能源汽车产业链2026Q1基本面追踪.html
+│   ├── 20260402_AI算力产业链景气度跟踪/
+│   └── 20260402_ICT行业2026-2027业绩展望.../
+│
+├── tools/                    # 独立工具脚本 ✅
+│   ├── fetch_stock_data.py   # 个股数据(强制yfinance)
+│   ├── fetch_index_data.py   # 指数数据
+│   ├── data_validator.py     # 数据验证中间件
+│   ├── technical_analysis.py # 基础技术指标
+│   ├── technical_analysis_enhanced.py # 增强版技术分析
+│   ├── chart_style.py        # UBS图表样式
+│   ├── chart_generator.py    # 图表生成器
+│   ├── init_report.py        # 研报初始化
+│   └── update_index_json.py  # 知识库更新
+│
+├── scripts/
+│   ├── data-pipeline/        # 数据管道 ✅
+│   │   ├── fetch_macro_data.py / fetch_stock_daily.py / fetch_futures.py
+│   │   ├── data_manager.py / scheduler.py
+│   │   ├── run.sh / crontab.config / logrotate.conf
+│   │   └── README.md
+│   └── update-mcp.sh
+│
+├── policy_monitor/           # 政策监控 (框架阶段) ⚠️
+│   ├── core.py / websites.yaml / SOP.md
+│
+├── styles/
+│   └── ubs.mplstyle          # Matplotlib样式 ✅
+├── templates/
+│   └── report-template.html  # 研报HTML模板 ✅
+├── docs/                     # 测试文档 ✅
+│   ├── DATA_FETCH_TEST_GUIDE.md
+│   ├── MCP_TEST_GUIDE.md
+│   └── TECHNICAL_ANALYSIS_TEST_GUIDE.md
+├── data/                     # 数据目录
+│   ├── raw/ / cleaned/ / processed/
+│   └── research/000988_华工科技/  # 研报原始数据
+└── mcp/                      # MCP配置 (旧版，功能已迁移至 research_mcp/)
+    └── utils/
 ```
 
 ---
 
-### 1.2 实时金融数据
+## 九、数据源与方法论速查
 
-#### 数据源优先级
+### 数据源优先级（强制执行）
 
-| 优先级 | 数据类型 | 推荐来源 | 备注 |
-|--------|----------|----------|------|
-| **P0** | A股指数/日线 | yfinance (primary) / AKShare (fallback) | 免费 |
-| **P0** | 个股K线/财务 | yfinance (primary) / Tushare (fallback) | 需注册 |
-| **P1** | 宏观指标 | AKShare（国家统计局封装）/ FRED API | 免费 |
-| **P1** | 期货/大宗商品 | AKShare + yfinance | 免费 |
-| **P2** | 行业数据 | 协会官网/乘联会/奥维云网 | 部分付费 |
-| **P2** | 港股 | Yahoo Finance (yfinance) | 免费 |
-| **P3** | 美股 | yfinance | 免费 |
+| 数据类型 | P0 首选 | P1 备选 | ❌ 禁止 |
+|----------|---------|---------|---------|
+| 股价/行情 | yfinance (000988.SZ格式) | 东方财富API (akshare) | WebSearch股价 |
+| 财务报表 | yfinance (.financials) | 巨潮资讯网 | 券商预测值替代实际值 |
+| 宏观指标 | AKShare(国统局封装) | FRED API | — |
+| 期货 | AKShare + yfinance | — | — |
 
-> ⚠️ **重要**：yfinance为A股数据源首选（000988.SZ格式），避免使用网上搜索的过时股价数据
-
-#### 推荐Python依赖
-
-```
-tushare>=1.4.0        # A股/财务数据（需注册获取Token）
-akshare>=1.13.0       # 全市场免费数据（fallback）
-yfinance>=0.2.40      # 国际市场行情（A股首选）
-pandas>=2.0.0         # 数据处理
-requests>=2.31.0       # HTTP请求
-fredapi>=0.5.0        # FRED宏观数据（需免费API Key）
-```
-
-#### 数据存储规范
-
-```
-data/
-├── raw/                    # 原始数据（不可修改）
-│   ├── 2026-04-02_沪深300日线.csv
-│   ├── 2026-04-02_宏观CPI.csv
-│   └── 2026-04-02_铜期货主连.csv
-├── cleaned/                # 清洗后数据
-│   └── *.csv
-└── processed/              # 分析用中间数据
-    └── *.csv
-```
-
----
-
-### 1.3 投研方法论
-
-#### 宏观分析框架
-
-| 框架 | 用途 | 核心指标 |
-|------|------|----------|
-| **美林投资时钟** | 大类资产轮动 | CPI、GDP、PMI |
-| **信贷周期** | 股市领先信号 | 社融、M2、信用利差 |
-| **通胀/利率框架** | 政策环境判断 | PPI、LPR、实际利率 |
-| **政策周期追踪** | 政策拐点识别 | 两会、央行表态、专项债 |
-
-#### 行业中观框架
-
-| 框架 | 用途 | 关键问题 |
-|------|------|----------|
-| **波特五力** | 行业吸引力评估 | 护城河有多宽？ |
-| **微笑曲线** | 产业链价值分布 | 哪个环节在变强？ |
-| **竞争格局四阶段** | 行业生命周期 | 产能出清到哪了？ |
-| **产能/库存周期** | 景气度判断 | 补库还是去库？ |
-
-#### 公司微观框架
-
-| 框架 | 用途 | 核心指标 |
-|------|------|----------|
-| **杜邦分析** | ROE拆解 | 净利率×周转率×杠杆 |
-| **DCF估值** | 绝对估值 | FCFF、WACC、永续增长 |
-| **PE/PEG估值** | 相对估值 | 历史分位、增速匹配 |
-| **管理层评估** | 治理风险 | 股权激励、大股东增减持 |
-
-#### 三层验证模型
+### 三层验证模型
 
 ```
 宏观层 (Beta) → 行业中观 (轮动) → 公司微观 (Alpha)
@@ -118,268 +390,20 @@ data/
    资产配置         行业选择         个股筛选
 ```
 
----
+### 数据验证 Checklist（每次出报前必检）
 
-### 1.4 UBS风格绘图
-
-#### 配色方案
-
-| 用途 | 颜色 | Hex |
-|------|------|-----|
-| 主色调 | UBS蓝 | `#003366` |
-| 辅助色 | 浅蓝灰 | `#6B8299` |
-| 强调色(跌) | 红色 | `#DC2626` |
-| 强调色(涨) | 绿色 | `#16A34A` |
-| 背景色 | 纯白 | `#FFFFFF` |
-| 文字色 | 深灰 | `#1F2937` |
-
-#### 技术栈
-
-| 库 | 用途 | 说明 |
-|-----|------|------|
-| **Matplotlib + Seaborn** | 静态图表 | 首选，论文级 |
-| **Plotly** | 交互图表 | Web嵌入 |
-| **Pyecharts** | 中文报告 | 中国市场 |
-| **mplcairo** | 高质量导出 | SVG/PNG |
-
-#### 图表模板
-
-| 图表类型 | 适用场景 |
-|----------|----------|
-| 折线图 | 时间序列（股价、指数、宏观指标） |
-| 柱状图 | 同比/环比对比 |
-| 堆叠柱状图 | 产业链利润分布、收入结构 |
-| 热力图 | 行业轮动矩阵、相关性矩阵 |
-| 散点图 | PE vs 增速、量价关系 |
-| 桑基图 | 产业链流向、资金流向 |
+- [ ] 股价是否在合理范围 (A股一般 1-1000元)
+- [ ] 市值是否与股价×股本匹配，币种标注正确
+- [ ] 财报日期是否为最新已发布（非预测值）
+- [ ] PE/PB 是否在合理范围
+- [ ] 数据来源字段 (data_source) 已标注
 
 ---
 
-## 二、项目当前状态
+## 十、备注
 
-### 已完成
-
-| 模块 | 状态 | 路径 |
-|------|------|------|
-| AGENTS.md | ✅ 完成 | `AGENTS.md` |
-| index.html | ✅ 完成 | `index.html` |
-| index.json | ✅ 完成 | `index.json` |
-| 研报样例 | ✅ 完成 | `reports/sample-report-001.html` |
-| MCP配置 | ✅ 完成 | `mcp/.mcp.json` |
-| SOP文档 | ✅ 完成 | `SOP/研报撰写SOP.md` |
-| 数据管道脚本 | ✅ 完成 | `scripts/data-pipeline/fetch_*.py` |
-| UBS绘图工具 | ✅ 完成 | `tools/chart_*.py`, `styles/ubs.mplstyle` |
-| MCP测试文档 | ✅ 完成 | `docs/MCP_TEST_GUIDE.md` |
-| 华工科技研报 | ✅ 完成 | 4个Agent并行完成 |
-
-### 待修复 (P0) - 数据质量问题 【已修复 ✅】
-
-| 模块 | 问题 | 影响 | 修复方案 | 状态 |
-|------|------|------|----------|------|
-| **股价数据失真** | 华工科技实际100元，研报显示41.82元 | 研报数据不可信 | **强制使用yfinance**，禁止从网上搜索股价 | ✅ |
-| **财报数据滞后** | 2025年一季报已发布，仍使用estimate | 分析基于过时数据 | **check_annual_report_status()** 检查实际vs预测 | ✅ |
-| **数据验证缺失** | DataAgent未验证数据合理性 | 错误数据流入研报 | **DataValidator** 验证中间件 | ✅ |
-
-### 数据质量SOP更新 【新增】
-
-```markdown
-### 数据获取优先级（强制）
-
-1. **股价数据**
-   - P0: yfinance (代码格式: 000988.SZ)
-   - P1: 东方财富API
-   - ❌ 禁止: 网上搜索的股价数据
-
-2. **财务数据**
-   - P0: yfinance (.financials / .quarterly_financials)
-   - P1: 巨潮资讯网 (官方财报)
-   - 检查点: 必须获取最新已发布财报，而非预测值
-
-3. **数据验证 checklist**
-   - [ ] 股价是否在合理范围 (A股一般 1-1000元)
-   - [ ] 市值是否与股价×股本匹配
-   - [ ] 财报日期是否为最新
-   - [ ] PE/PB是否在合理范围
-```
-
----
-
-## 三、待办任务清单
-
-### P0 - 紧急修复 (本周完成) ✅
-
-- [x] **修复股价获取脚本**
-  - [x] 更新 `tools/fetch_stock_data.py` - 强制使用yfinance
-  - [x] 添加股价合理性校验 (1-1000元)
-  - [x] 添加市值交叉验证
-
-- [x] **修复财报数据获取**
-  - [x] 添加财报发布日期检查 - `check_annual_report_status()` 函数
-  - [x] 优先使用实际财报数据而非预测
-  - [x] 添加季度数据自动获取
-
-- [x] **数据验证中间件**
-  - [x] 创建 `tools/data_validator.py`
-  - [x] 实现股价/市值/PE范围检查
-  - [x] 实现财报日期新鲜度检查
-
-### P1 - 数据管道完善
-
-- [ ] **数据获取脚本**
-  - [ ] `tools/fetch_index_data.py` - 已有，补充文档
-  - [ ] `scripts/data-pipeline/fetch_macro_data.py` - 宏观数据
-  - [ ] `scripts/data-pipeline/fetch_stock_daily.py` - A股个股日线
-  - [ ] `scripts/data-pipeline/fetch_futures.py` - 期货数据
-
-- [ ] **UBS绘图工具**
-  - [ ] `tools/chart_style.py` - 统一样式配置
-  - [ ] `styles/ubs.mplstyle` - Matplotlib样式文件
-  - [ ] `tools/chart_generator.py` - 图表生成器基类
-
----
-
-## 四、已识别问题详细记录
-
-### Issue #1: 股价数据失真
-
-**现象**: 华工科技(000988.SZ)实际股价约100元，但研报显示41.82元
-
-**根因**: DataAgent使用WebSearch获取股价，而非直接调用yfinance API
-
-**影响**: 
-- 研报估值数据完全错误
-- 目标价计算失真
-- 投资结论不可信
-
-**修复方案**:
-1. 强制使用yfinance获取股价：`yf.Ticker('000988.SZ').info['currentPrice']`
-2. 添加校验：股价应在1-1000元之间
-3. 添加交叉验证：市值 = 股价 × 总股本
-
-### Issue #2: 财报数据滞后
-
-**现象**: 2025年一季报已发布，但研报使用estimate预测值
-
-**根因**: DataAgent未检查财报发布日期，直接引用券商预测
-
-**影响**:
-- 分析基于过时数据
-- 投资结论可能偏离实际
-
-**修复方案**:
-1. 添加财报日期检查逻辑
-2. 优先使用 `.quarterly_financials` 获取实际季报
-3. 添加数据新鲜度标签（数据获取时间）
-
----
-
-## 五、技术路径
-
-### Phase 0: 紧急修复（立即执行）
-
-```
-1. 更新 DataAgent SOP - 强制使用yfinance
-2. 创建 data_validator.py 校验模块
-3. 修复华工科技研报中的错误数据
-4. 重新生成研报并发布
-```
-
-### Phase 1: 数据管道（1-2天）
-
-```
-1. 创建 scripts/data-pipeline/ 目录
-2. 实现 fetch_macro_data.py (GDP/CPI/PPI/PMI)
-3. 实现 fetch_stock_daily.py (个股/指数K线)
-4. 实现 fetch_futures.py (国内期货+国际)
-5. 编写数据管道测试文档
-```
-
-### Phase 2: 绘图工具（2-3天）
-
-```
-1. 创建 tools/chart_style.py
-2. 创建 styles/ubs.mplstyle
-3. 实现 TimeSeriesChart, BarChart, HeatmapChart 类
-4. 实现 StackedBarChart (产业链利润)
-5. 编写绘图测试文档
-```
-
----
-
-## 六、MCP工具清单
-
-### 已有MCP
-
-| 工具 | 路径 | 状态 |
-|------|------|------|
-| fetch_index_data | `tools/fetch_index_data.py` | ✅ 可用 |
-| init_report | `tools/init_report.py` | ✅ 可用 |
-| update_index_json | `tools/update_index_json.py` | ✅ 可用 |
-| Notion MCP | 全局集成 | ✅ 可用 |
-| WebSearch | 全局集成 | ✅ 可用 |
-
-### 建议新增/修复 MCP
-
-| 工具 | 脚本 | 用途 | 优先级 | 状态 |
-|------|------|------|--------|------|
-| fetch_stock_data | `tools/fetch_stock_data.py` | 个股数据（强制yfinance） | P0 | ✅ |
-| data_validator | `tools/data_validator.py` | 数据质量校验 | P0 | ✅ |
-| check_annual_report_status | `tools/fetch_stock_data.py` | 实际vs预测数据检测 | P0 | ✅ |
-| technical_analysis | `tools/technical_analysis.py` | 基础技术指标 | P1 | ✅ |
-| technical_enhanced | `tools/technical_analysis_enhanced.py` | 增强版技术分析 | P1 | ✅ |
-| fetch_macro_data | `scripts/data-pipeline/fetch_macro_data.py` | 宏观数据 | P1 | ✅ |
-| fetch_futures_data | `scripts/data-pipeline/fetch_futures.py` | 期货数据 | P1 | ✅ |
-| generate_charts | `tools/chart_generator.py` | 图表生成 | P1 | ✅ |
-
----
-
-## 七、文件结构
-
-```
-投研助手/
-├── .agentstalk/              # Agent协作目录
-│   └── ROADMAP.md           # 本文件
-├── index.html                # Landing Page ✅
-├── index.json                # 研报索引 ✅
-├── AGENTS.md                 # Agent定义 ✅
-├── SOP/                      # 标准作业程序
-│   ├── 研报撰写SOP.md       ✅
-│   └── 数据获取SOP.md       ✅ (P0)
-├── reports/                  # 研报存储
-│   └── 华工科技深度研报/     # 需修复数据
-├── tools/                    # 工具脚本
-│   ├── fetch_index_data.py   # ✅ 指数数据
-│   ├── fetch_stock_data.py   # ✅ 个股数据
-│   ├── data_validator.py     # ✅ 数据验证
-│   ├── technical_analysis.py # ✅ 基础技术指标
-│   ├── technical_analysis_enhanced.py # ✅ 增强版技术分析
-│   ├── init_report.py        # ✅ 研报初始化
-│   ├── update_index_json.py  # ✅ 知识库更新
-│   ├── chart_style.py        # ✅ 图表样式
-│   └── chart_generator.py    # ✅ 图表生成
-├── scripts/
-│   └── data-pipeline/        ✅
-│       ├── fetch_macro_data.py  ✅
-│       ├── fetch_stock_daily.py ✅
-│       └── fetch_futures.py ✅
-├── styles/
-│   └── ubs.mplstyle          ✅
-├── templates/
-│   └── report-template.html  # 已有
-├── mcp/
-│   └── .mcp.json             # MCP配置 ✅
-└── data/                     # 数据目录
-    ├── raw/
-    ├── cleaned/
-    └── processed/
-```
-
----
-
-## 八、备注
-
-- ⚠️ **P0级问题必须立即修复**：股价和财报数据是研报的核心，数据错误将直接导致投资损失
-- MCP测试文档需要包含：API连接测试、边界条件测试、错误处理测试
-- 所有Python脚本需要包含 `--help` 和 example usage
-- 数据管道脚本需要包含 crontab 定时任务配置示例
-- 数据验证中间件必须成为数据获取流程的强制环节
+- **MCP 三端配置均指向源码**：代码变更即时生效，无需重新安装
+- **numpy<2 是当前硬约束**：等待 pandas/pyarrow 上游完成 NumPy 2.x 兼容后解除
+- **项目运行环境**：macOS, Python 3.10.8, Miniconda base (建议迁移至 .venv)
+- **Git仓库**：.venv/ 误提交到历史，建议使用 git-filter-repo 清理
+- **通信协议**：`.agentstalk/[timestamp]_[sender]_to_[receiver]_[topic].md`
