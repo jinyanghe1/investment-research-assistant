@@ -207,7 +207,7 @@ def fetch_futures_realtime(symbol: str, market: str = "domestic") -> dict:
                 prev = info.get("previousClose")
                 change = None
                 change_pct = None
-                if price and prev and prev != 0:
+                if price is not None and prev is not None and prev != 0:
                     change = _safe_float(price - prev)
                     change_pct = _safe_float((price - prev) / prev * 100)
                 return {
@@ -541,7 +541,7 @@ def fetch_futures_basis(symbol: str) -> dict:
                                 if pcol in r.index:
                                     cprice = _safe_float(r[pcol])
                                     break
-                            contract_basis = _safe_float(spot_price - cprice) if spot_price and cprice else None
+                            contract_basis = _safe_float(spot_price - cprice) if spot_price is not None and cprice is not None else None
                             contracts.append({
                                 "contract": contract_code,
                                 "price": cprice,

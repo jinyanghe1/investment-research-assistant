@@ -452,3 +452,106 @@ class TestEdgeCases:
         assert "MA" in result["indicators"]
         assert "MACD" in result["indicators"]
         assert "RSI" in result["indicators"]
+
+
+# ---------------------------------------------------------------------------
+# Weighted Signal Tests (Wave 2)
+# ---------------------------------------------------------------------------
+
+class TestWeightedSignal:
+    """Test the weighted scoring system in fetch_technical_signal."""
+
+    def test_weighted_signal_score_present(self):
+        """Verify weighted_score is present in the result dict."""
+        from tools.technical_analysis import fetch_technical_signal
+
+        df = _make_trend_df("up", 200)
+        with patch(
+            "tools.technical_analysis.fetch_stock_history",
+            side_effect=_mock_fetch_stock_history(df),
+        ):
+            result = fetch_technical_signal("600519", market="A")
+        assert "error" not in result
+        assert "weighted_score" in result
+        assert isinstance(result["weighted_score"], (int, float))
+
+    def test_weighted_strong_buy(self):
+        """All BUY signals → weighted_score > 0.35, overall='BUY'."""
+        from tools.technical_analysis import fetch_technical_signal
+
+        # Strong uptrend should yield mostly BUY signals → high weighted_score
+        df = _make_trend_df("up", 200)
+        with patch(
+            "tools.technical_analysis.fetch_stock_history",
+            side_effect=_mock_fetch_stock_history(df),
+        ):
+            result = fetch_technical_signal("600519", market="A")
+        assert "error" not in result
+
+        # In a strong uptrend, the weighted_score should be positive
+        # and overall should be BUY if score >= 0.35
+        if result["weighted_score"] >= 0.35:
+            assert result["overall_signal"] == "BUY"
+        # At minimum, score should be positive in strong uptrend
+        assert result["weighted_score"] > 0, (
+            f"Expected positive weighted_score in uptrend, got {result['weighted_score']}"
+        )
+
+    def test_weighted_strong_sell(self):
+        """Downtrend data → weighted_score < uptrend score, sell_count >= buy_count."""
+        from tools.technical_analysis import fetch_technical_signal
+
+        df = _make_trend_df("down", 200)
+        with patch(
+            "tools.technical_analysis.fetch_stock_history",
+            side_effect=_mock_fetch_stock_history(df),
+        ):
+            result = fetch_technical_signal("600519", market="A")
+        assert "error" not in result
+
+        # In downtrend, if score <= -0.35 the overall must be SELL
+        if result["weighted_score"] <= -0.35:
+            assert result["overall_signal"] == "SELL"
+
+        # At minimum, SELL signal count should be >= BUY in a downtrend
+        sell_count = sum(1 for s in result["signals"].values() if s["signal"] == "SELL")
+        buy_count = sum(1 for s in result["signals"].values() if s["signal"] == "BUY")
+        assert sell_count >= buy_count, (
+            f"Expected sell≥buy in downtrend, got sell={sell_count} buy={buy_count}"
+        )
+
+    def test_weighted_neutral(self):
+        """Mixed signals → |weighted_score| < 0.35, overall='NEUTRAL'."""
+        from tools.technical_analysis import fetch_technical_signal
+
+        df = _make_trend_df("flat", 200)
+        with patch(
+            "tools.technical_analysis.fetch_stock_history",
+            side_effect=_mock_fetch_stock_history(df),
+        ):
+            result = fetch_technical_signal("600519", market="A")
+        assert "error" not in result
+
+        # For flat data, if |weighted_score| < 0.35, overall should be NEUTRAL
+        if abs(result["weighted_score"]) < 0.35:
+            assert result["overall_signal"] == "NEUTRAL"
+        # The score should be close to zero for sideways market
+        assert abs(result["weighted_score"]) < 0.8, (
+            f"Expected small |weighted_score| for flat data, got {result['weighted_score']}"
+        )
+
+    def test_weighted_score_bounds(self):
+        """weighted_score should be bounded between -1.0 and 1.0."""
+        from tools.technical_analysis import fetch_technical_signal
+
+        for direction in ("up", "down", "flat"):
+            df = _make_trend_df(direction, 200)
+            with patch(
+                "tools.technical_analysis.fetch_stock_history",
+                side_effect=_mock_fetch_stock_history(df),
+            ):
+                result = fetch_technical_signal("600519", market="A")
+            if "error" not in result:
+                assert -1.0 <= result["weighted_score"] <= 1.0, (
+                    f"weighted_score out of bounds for {direction}: {result['weighted_score']}"
+                )

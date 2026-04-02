@@ -1,11 +1,32 @@
 {
   "mcpServers": {
-    "investment-research": {
+    "投研助手": {
       "command": "python3",
       "args": [
-        "mcp/server.py"
+        "-m",
+        "mcp.server"
       ],
-      "env": {}
+      "cwd": "/Users/hejinyang/投研助手",
+      "env": {
+        "PYTHONPATH": "/Users/hejinyang/投研助手"
+      }
     }
+  },
+  "metadata": {
+    "name": "投研助手 MCP",
+    "version": "1.0.0",
+    "description": "AI驱动的全链路投研工具集",
+    "projectPath": "/Users/hejinyang/投研助手",
+    "lastUpdated": "2026-04-02",
+    "tools": [
+      "market_data",
+      "macro_data",
+      "company_analysis",
+      "fundamental_analysis",
+      "report_generator",
+      "knowledge_base",
+      "technical_analysis",
+      "futures_data"
+    ]
   }
 }

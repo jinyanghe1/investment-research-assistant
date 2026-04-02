@@ -502,3 +502,110 @@ class TestFundamentalEdgeCases:
         qs = _compute_quality_score(profitability, growth, solvency, cash_flow)
         assert qs["score"] == 0
         assert qs["grade"] == "F"
+
+
+# ---------------------------------------------------------------------------
+# Valuation Percentile Tests (Wave 2)
+# ---------------------------------------------------------------------------
+
+class TestValuationPercentile:
+    """Test fetch_valuation_percentile."""
+
+    @pytest.fixture
+    def mock_hist_with_pe_pb(self):
+        """3年日线历史 DataFrame，含市盈率/市净率列。"""
+        n = 750  # ~3年交易日
+        dates = pd.date_range("2022-01-01", periods=n, freq="B")
+        pe_values = [20 + i * 0.02 for i in range(n)]  # PE 从20逐步涨到35
+        pb_values = [2.0 + i * 0.004 for i in range(n)]  # PB 从2.0涨到5.0
+        return pd.DataFrame({
+            "日期": dates.strftime("%Y-%m-%d"),
+            "收盘": [100 + i * 0.1 for i in range(n)],
+            "市盈率": pe_values,
+            "市净率": pb_values,
+        })
+
+    @pytest.fixture
+    def mock_spot_for_percentile(self):
+        """实时行情 DataFrame，提供当前PE/PB。"""
+        return pd.DataFrame({
+            "代码": ["600519"],
+            "名称": ["贵州茅台"],
+            "最新价": [1800.0],
+            "市盈率-动态": [30.0],
+            "市净率": [8.0],
+        })
+
+    def test_valuation_percentile_structure(
+        self, mock_hist_with_pe_pb, mock_spot_for_percentile,
+    ):
+        """验证返回结构包含 pe_percentile, pb_percentile, assessment。"""
+        mock_ak = MagicMock()
+        mock_ak.stock_zh_a_hist.return_value = mock_hist_with_pe_pb
+        mock_ak.stock_zh_a_spot_em.return_value = mock_spot_for_percentile
+
+        with patch("tools.fundamental_analysis.ak", mock_ak):
+            from tools.fundamental_analysis import fetch_valuation_percentile
+            result = fetch_valuation_percentile("600519", market="A")
+
+        assert isinstance(result, dict)
+        assert "error" not in result
+        assert result["symbol"] == "600519"
+        for key in ("pe_ttm", "pe_percentile", "pe_min", "pe_max", "pe_median",
+                     "pb", "pb_percentile", "pb_min", "pb_max", "pb_median",
+                     "assessment", "history_days"):
+            assert key in result, f"Missing key: {key}"
+        assert result["pe_ttm"] == 30.0
+        assert result["pb"] == 8.0
+        assert result["pe_percentile"] is not None
+        assert result["pb_percentile"] is not None
+        assert isinstance(result["assessment"], str)
+
+    def test_valuation_percentile_high(self):
+        """PE 在历史高位 → 高分位。"""
+        n = 500
+        pe_values = [15 + i * 0.02 for i in range(n)]  # PE: 15 → 25
+        hist_df = pd.DataFrame({
+            "日期": pd.date_range("2022-06-01", periods=n, freq="B").strftime("%Y-%m-%d"),
+            "收盘": [100.0] * n,
+            "市盈率": pe_values,
+            "市净率": [3.0] * n,
+        })
+        # 当前PE=24.5，接近最高值25 → 应该在很高的分位
+        spot_df = pd.DataFrame({
+            "代码": ["600519"],
+            "名称": ["贵州茅台"],
+            "最新价": [1800.0],
+            "市盈率-动态": [24.5],
+            "市净率": [3.0],
+        })
+        mock_ak = MagicMock()
+        mock_ak.stock_zh_a_hist.return_value = hist_df
+        mock_ak.stock_zh_a_spot_em.return_value = spot_df
+
+        with patch("tools.fundamental_analysis.ak", mock_ak):
+            from tools.fundamental_analysis import fetch_valuation_percentile
+            result = fetch_valuation_percentile("600519", market="A")
+
+        assert "error" not in result
+        assert result["pe_percentile"] >= 80, (
+            f"Expected PE percentile >= 80 for high PE, got {result['pe_percentile']}"
+        )
+        assert "偏高" in result["assessment"]
+
+    def test_valuation_percentile_api_fail(self):
+        """历史数据 API 失败时优雅返回错误。"""
+        mock_ak = MagicMock()
+        mock_ak.stock_zh_a_hist.side_effect = Exception("API 500 error")
+
+        with patch("tools.fundamental_analysis.ak", mock_ak):
+            from tools.fundamental_analysis import fetch_valuation_percentile
+            result = fetch_valuation_percentile("600519", market="A")
+
+        assert "error" in result
+
+    def test_valuation_percentile_unsupported_market(self):
+        """非A股市场返回错误。"""
+        from tools.fundamental_analysis import fetch_valuation_percentile
+        result = fetch_valuation_percentile("AAPL", market="US")
+        assert "error" in result
