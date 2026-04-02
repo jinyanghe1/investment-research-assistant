@@ -2,8 +2,21 @@
 
 **创建日期**: 2026-04-02
 **优先级**: P0
-**状态**: 待修复
+**状态**: 部分修复中
 **负责人**: 待分配
+
+---
+
+## 已完成的修复
+
+### 1. ✅ 代理清空修复 (commit: 6a5362b)
+- 在模块导入时清空所有代理环境变量
+- 添加 `_disable_proxy()` 上下文管理器
+
+### 2. ✅ yfinance curl_cffi 禁用 (commit: c9323d8)
+- 设置 `YFINANCE_DISABLE_CURL_CFFI=1` 环境变量
+- yfinance 将使用 requests 代替 curl_cffi
+- 避免 `OPENSSL_internal:invalid library` 错误
 
 ---
 
@@ -105,11 +118,11 @@ Max retries exceeded with url: /api/qt/clist/get
 
 | 工具 | 数据源 | 当前状态 | 优先级 |
 |------|--------|----------|--------|
-| get_stock_realtime | akshare → yfinance | ❌ yfinance SSL错误 | P0 |
+| get_stock_realtime | akshare → yfinance | ⚠️ yfinance限速中 | P0 |
 | get_index_quote (国内) | akshare | ❌ API限速 | P0 |
 | get_etf_realtime | akshare | ❌ API限速 | P0 |
-| get_forex | akshare → yfinance | ⚠️ 部分失败 | P1 |
-| get_commodity | yfinance | ⚠️ SSL错误 | P0 |
+| get_forex | akshare → yfinance | ⚠️ yfinance限速中 | P1 |
+| get_commodity | yfinance | ⚠️ yfinance限速中 | P0 |
 | screen_stocks | akshare | ❌ API限速 | P0 |
 | get_valuation_percentile | akshare history | ❌ 直连失败 | P0 |
 | get_peer_comparison | akshare | ❌ API限速 | P0 |
