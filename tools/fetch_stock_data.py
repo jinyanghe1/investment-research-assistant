@@ -57,18 +57,22 @@ def get_stock_price_from_yfinance(ts_code: str) -> Dict:
     total_shares = info.get('sharesOutstanding') or info.get('impliedSharesOutstanding')
     
     # 计算市值（如果info中没有）
+    # 注意: yfinance的marketCap和current_price均以股票交易币种计价
     market_cap = info.get('marketCap')
     if market_cap is None and current_price and total_shares:
         market_cap = current_price * total_shares
     
-    # 转换市值为亿元
+    # 转换市值为"亿"（币种与股票交易货币一致）
+    currency = info.get('currency', 'CNY')
     market_cap_yi = market_cap / 1e8 if market_cap else None
+    market_cap_unit = f'亿{currency}'
     
     result = {
         'ts_code': ts_code,
         'current_price': current_price,
-        'currency': info.get('currency', 'CNY'),
+        'currency': currency,
         'market_cap': market_cap_yi,
+        'market_cap_unit': market_cap_unit,
         'total_shares': total_shares,
         'pe_ttm': info.get('trailingPE'),
         'pb': info.get('priceToBook'),

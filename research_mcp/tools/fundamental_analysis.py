@@ -151,43 +151,34 @@ _QUALITY_CRITERIA = [
 
 def _compute_quality_score(profitability: dict, growth: dict,
                            solvency: dict, cash_flow: dict) -> dict:
-    """基于多维度指标计算企业质量评分 (0-100)。"""
+    """基于多维度指标计算企业质量评分 (0-100)。
+
+    评分规则由模块级 ``_QUALITY_CRITERIA`` 常量驱动，便于统一维护。
+    """
     score = 0
     details = []
 
-    # ROE
-    roe = profitability.get("roe")
-    if roe is not None:
-        if roe > 15:
-            score += 20
-            details.append("ROE>15%优秀(+20)")
-        if roe > 20:
-            score += 10
-            details.append("ROE>20%卓越(+10)")
+    # 从各维度字典中提取指标值
+    _src = {**profitability, **growth, **solvency, **cash_flow}
 
-    # 毛利率
-    gm = profitability.get("gross_margin")
-    if gm is not None and gm > 30:
-        score += 15
-        details.append("毛利率>30%(+15)")
-
-    # 资产负债率
-    dr = solvency.get("debt_ratio")
-    if dr is not None and dr < 50:
-        score += 15
-        details.append("负债率<50%(+15)")
-
-    # 经营现金流/净利润
-    ocf = cash_flow.get("ocf_to_profit")
-    if ocf is not None and ocf > 1.0:
-        score += 15
-        details.append("经营现金流覆盖利润(+15)")
-
-    # 营收增速
-    rev_yoy = growth.get("revenue_yoy")
-    if rev_yoy is not None and rev_yoy > 10:
-        score += 15
-        details.append("营收增速>10%(+15)")
+    for metric_key, threshold, base_pts, bonus_threshold, bonus_pts, direction in _QUALITY_CRITERIA:
+        val = _src.get(metric_key)
+        if val is None:
+            continue
+        if direction == "higher":
+            if val > threshold:
+                score += base_pts
+                details.append(f"{metric_key}>{threshold}(+{base_pts})")
+            if bonus_threshold is not None and val > bonus_threshold:
+                score += bonus_pts
+                details.append(f"{metric_key}>{bonus_threshold}(+{bonus_pts})")
+        else:  # lower is better
+            if val < threshold:
+                score += base_pts
+                details.append(f"{metric_key}<{threshold}(+{base_pts})")
+            if bonus_threshold is not None and val < bonus_threshold:
+                score += bonus_pts
+                details.append(f"{metric_key}<{bonus_threshold}(+{bonus_pts})")
 
     # 持续盈利性（净利率为正视为盈利）
     nm = profitability.get("net_margin")
@@ -208,6 +199,10 @@ def _compute_quality_score(profitability: dict, growth: dict,
         grade = "F"
 
     comment_parts = []
+    roe = _src.get("roe")
+    ocf = _src.get("ocf_to_profit")
+    dr = _src.get("debt_ratio")
+    rev_yoy = _src.get("revenue_yoy")
     if roe is not None and roe > 20:
         comment_parts.append("盈利能力极强")
     elif roe is not None and roe > 15:
