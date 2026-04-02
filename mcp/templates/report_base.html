@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{title}} - 投研助手</title>
+    <title>{{TITLE}} - 投研助手</title>
     <style>
         /* ── 基础重置 ────────────────────────────────── */
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -353,45 +353,45 @@
             <span>投研助手</span>
         </a>
         <div class="nav-meta">
-            <span class="nav-tag">{{category}}</span>
-            <span>{{author}}</span>
-            <span>{{date}}</span>
+            <span class="nav-tag">{{CATEGORY}}</span>
+            <span>{{AUTHOR}}</span>
+            <span>{{DATE}}</span>
         </div>
     </div>
 </nav>
 
 <!-- ── 文章头部 ──────────────────────────────────── -->
 <header class="report-header">
-    <h1>{{title}}</h1>
+    <h1>{{TITLE}}</h1>
     <div class="header-meta">
-        <span>👤 {{author}}</span>
-        <span>📅 {{date}}</span>
-        <span>📂 {{category}}</span>
-        <span>🏷️ {{tags}}</span>
+        <span>👤 {{AUTHOR}}</span>
+        <span>📅 {{DATE}}</span>
+        <span>📂 {{CATEGORY}}</span>
+        <span>🏷️ {{TAGS_HTML}}</span>
     </div>
 </header>
 
 <!-- ── 目录 ────────────────────────────────────── -->
 <section class="toc-section">
-    {{toc}}
+    {{TOC}}
 </section>
 
 <!-- ── 正文 ────────────────────────────────────── -->
 <main class="report-body">
-    {{content}}
+    {{CONTENT}}
 </main>
 
 <!-- ── 免责声明 ──────────────────────────────────── -->
 <section class="disclaimer">
     <div class="disclaimer-inner">
         <h4>⚠️ 免责声明</h4>
-        <p>{{disclaimer}}</p>
+        <p>本研报由投研AI助手自动生成，仅供内部参考，不构成任何投资建议。报告中的数据、观点和结论可能存在偏差，使用者应自行核实并独立判断。</p>
     </div>
 </section>
 
 <!-- ── 页脚 ────────────────────────────────────── -->
 <footer class="report-footer">
-    <p>由 投研助手 AI 中枢 生成 · 仅供内部研究参考 · 不构成投资建议</p>
+    <p>© {{YEAR}} 投研助手 AI 中枢 · 仅供内部研究参考 · 不构成投资建议</p>
 </footer>
 
 </body>

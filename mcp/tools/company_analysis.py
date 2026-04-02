@@ -17,11 +17,8 @@ try:
     _base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if _base not in sys.path:
         sys.path.insert(0, _base)
-    from utils.cache import DataCache
     from utils.formatters import format_number, format_change
-    _cache = DataCache()
 except Exception:
-    _cache = None
     def format_number(n, d=2):
         return f"{n:,.{d}f}" if isinstance(n, (int, float)) and not math.isnan(n) else str(n)
     def format_change(n):

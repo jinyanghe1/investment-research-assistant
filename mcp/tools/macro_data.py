@@ -10,16 +10,22 @@ import sys
 from datetime import datetime
 
 # ---------------------------------------------------------------------------
-# 缓存模块（可选）
+# 公共工具（从 utils 导入，带 fallback）
 # ---------------------------------------------------------------------------
 try:
     _base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if _base not in sys.path:
         sys.path.insert(0, _base)
-    from utils.cache import DataCache
-    _cache = DataCache()
+    from utils.formatters import safe_round as _round2, date_to_str as _date_str
 except Exception:
-    _cache = None
+    def _round2(val, decimals=2):
+        try: return round(float(val), decimals)
+        except (TypeError, ValueError): return val
+    def _date_str(val):
+        if val is None: return None
+        if isinstance(val, str): return val[:10]
+        try: return val.strftime("%Y-%m-%d")
+        except Exception: return str(val)[:10]
 
 # ---------------------------------------------------------------------------
 # 第三方库（保护性导入）
@@ -38,24 +44,6 @@ except ImportError:
 # ---------------------------------------------------------------------------
 # 工具函数
 # ---------------------------------------------------------------------------
-def _round2(val):
-    """安全地将数值保留2位小数。"""
-    try:
-        return round(float(val), 2)
-    except (TypeError, ValueError):
-        return val
-
-
-def _date_str(val):
-    """将各种日期格式统一为 YYYY-MM-DD 字符串。"""
-    if val is None:
-        return None
-    if isinstance(val, str):
-        return val[:10]
-    try:
-        return val.strftime("%Y-%m-%d")
-    except Exception:
-        return str(val)[:10]
 
 
 def _safe_records(df, max_rows: int = 12, date_col: str = None) -> list[dict]:

@@ -9,7 +9,6 @@
 
 import json
 import os
-from datetime import datetime
 
 # ── 路径约定 ─────────────────────────────────────────────
 _MCP_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
