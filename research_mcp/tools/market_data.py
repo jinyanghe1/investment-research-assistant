@@ -7,6 +7,7 @@
 
 import os
 import sys
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 
 # ---------------------------------------------------------------------------
@@ -18,6 +19,36 @@ if _base not in sys.path:
 
 from config import config
 from utils.errors import handle_errors
+
+
+# ---------------------------------------------------------------------------
+# 代理控制：akshare 经 HTTP 代理容易连接失败，需要清空所有代理相关环境变量
+# ---------------------------------------------------------------------------
+# 所有需要清空的代理环境变量
+_PROXY_KEYS = ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy",
+               "ALL_PROXY", "all_proxy", "NO_PROXY", "no_proxy",
+               "GLOBAL_AGENT", "global_agent", "CURL_CA_BUNDLE", "SSL_CERT_FILE")
+
+# 临时清空代理环境变量，确保akshare初始化时不会使用代理
+_orig_proxy = {k: os.environ.get(k) for k in _PROXY_KEYS if k in os.environ}
+for k in _orig_proxy:
+    os.environ.pop(k)
+
+
+@contextmanager
+def _disable_proxy():
+    """临时禁用 HTTP/HTTPS 代理，确保 akshare 直连。"""
+    saved = {k: os.environ.get(k) for k in _PROXY_KEYS}
+    for k in _PROXY_KEYS:
+        os.environ.pop(k, None)
+    try:
+        yield
+    finally:
+        for k, v in saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
 
 try:
     from utils.formatters import safe_round as _round2, date_to_str as _date_str
@@ -97,33 +128,78 @@ def fetch_stock_realtime(symbol: str, market: str = "A") -> dict:
     market = market.upper()
 
     if market == "A":
-        if ak is None:
-            return {"error": "akshare 未安装，无法获取A股数据"}
-        df = ak.stock_zh_a_spot_em()
-        row = df[df["代码"] == symbol]
-        if row.empty:
-            return {"error": f"未找到A股代码 {symbol}，请检查代码是否正确"}
-        r = row.iloc[0]
-        return {
-            "名称": str(r.get("名称", "")),
-            "代码": str(r.get("代码", symbol)),
-            "现价": _round2(r.get("最新价")),
-            "涨跌幅(%)": _round2(r.get("涨跌幅")),
-            "涨跌额": _round2(r.get("涨跌额")),
-            "成交量(手)": _round2(r.get("成交量")),
-            "成交额(元)": _round2(r.get("成交额")),
-            "市盈率": _round2(r.get("市盈率-动态")),
-            "市净率": _round2(r.get("市净率")),
-            "总市值": _round2(r.get("总市值")),
-            "流通市值": _round2(r.get("流通市值")),
-            "今开": _round2(r.get("今开")),
-            "最高": _round2(r.get("最高")),
-            "最低": _round2(r.get("最低")),
-            "昨收": _round2(r.get("昨收")),
-            "换手率(%)": _round2(r.get("换手率")),
-            "量比": _round2(r.get("量比")),
-            "market": "A",
-        }
+        # 优先使用 akshare
+        if ak is not None:
+            try:
+                with _disable_proxy():
+                    df = ak.stock_zh_a_spot_em()
+                row = df[df["代码"] == symbol]
+                if not row.empty:
+                    r = row.iloc[0]
+                    return {
+                        "名称": str(r.get("名称", "")),
+                        "代码": str(r.get("代码", symbol)),
+                        "现价": _round2(r.get("最新价")),
+                        "涨跌幅(%)": _round2(r.get("涨跌幅")),
+                        "涨跌额": _round2(r.get("涨跌额")),
+                        "成交量(手)": _round2(r.get("成交量")),
+                        "成交额(元)": _round2(r.get("成交额")),
+                        "市盈率": _round2(r.get("市盈率-动态")),
+                        "市净率": _round2(r.get("市净率")),
+                        "总市值": _round2(r.get("总市值")),
+                        "流通市值": _round2(r.get("流通市值")),
+                        "今开": _round2(r.get("今开")),
+                        "最高": _round2(r.get("最高")),
+                        "最低": _round2(r.get("最低")),
+                        "昨收": _round2(r.get("昨收")),
+                        "换手率(%)": _round2(r.get("换手率")),
+                        "量比": _round2(r.get("量比")),
+                        "market": "A",
+                    }
+            except Exception:
+                pass  # akshare 失败，fallback 到 yfinance
+
+        # akshare 失败或不可用，使用 yfinance fallback
+        if yf is None:
+            return {"error": "akshare 和 yfinance 均不可用，无法获取A股数据"}
+
+        try:
+            # 转换代码格式: A股 -> yfinance 格式
+            # 上海股票(60/68/688开头)用 .SS，深圳股票(00/30/002/003开头)用 .SZ
+            yf_symbol = symbol
+            if not symbol.endswith(".SZ") and not symbol.endswith(".SS"):
+                if symbol.startswith(("6", "688")):
+                    yf_symbol = f"{symbol}.SS"
+                else:
+                    yf_symbol = f"{symbol}.SZ"
+
+            ticker = yf.Ticker(yf_symbol)
+            info = ticker.info
+            if not info or info.get("regularMarketPrice") is None:
+                return {"error": f"未找到A股代码 {symbol}，请检查代码是否正确"}
+
+            price = info.get("regularMarketPrice") or info.get("currentPrice")
+            prev = info.get("previousClose") or info.get("regularMarketPreviousClose")
+            change_pct = _round2((price - prev) / prev * 100) if price and prev and prev != 0 else None
+
+            return {
+                "名称": info.get("shortName") or info.get("longName", symbol),
+                "代码": symbol,
+                "现价": _round2(price),
+                "涨跌幅(%)": change_pct,
+                "涨跌额": _round2(price - prev) if price and prev else None,
+                "成交量(手)": _round2(info.get("regularMarketVolume") / 100) if info.get("regularMarketVolume") else None,
+                "市盈率": _round2(info.get("trailingPE")),
+                "市净率": _round2(info.get("priceToBook")),
+                "总市值": info.get("marketCap"),
+                "流通市值": info.get("floatShares") * price if info.get("floatShares") and price else None,
+                "52周最高": _round2(info.get("fiftyTwoWeekHigh")),
+                "52周最低": _round2(info.get("fiftyTwoWeekLow")),
+                "market": "A",
+                "data_source": "yfinance",
+            }
+        except Exception as e:
+            return {"error": f"获取 {symbol} 实时行情失败: {str(e)}"}
 
     elif market in ("US", "HK"):
         if yf is None:
@@ -167,27 +243,68 @@ def fetch_stock_history(symbol: str, market: str = "A", period: str = "daily", d
     market = market.upper()
 
     if market == "A":
-        if ak is None:
-            return {"error": "akshare 未安装，无法获取A股数据"}
-        period_map = {"daily": "daily", "weekly": "weekly", "monthly": "monthly"}
-        end_date = datetime.now().strftime("%Y%m%d")
-        start_date = (datetime.now() - timedelta(days=days)).strftime("%Y%m%d")
-        df = ak.stock_zh_a_hist(
-            symbol=symbol, period=period_map.get(period, "daily"),
-            start_date=start_date, end_date=end_date, adjust="qfq",
-        )
-        if df is None or df.empty:
-            return {"error": f"未找到 {symbol} 的历史数据"}
-        df = df.tail(max_rows)
-        records = []
-        for _, r in df.iterrows():
-            records.append({
-                "日期": _date_str(r.get("日期")), "开盘": _round2(r.get("开盘")),
-                "最高": _round2(r.get("最高")), "最低": _round2(r.get("最低")),
-                "收盘": _round2(r.get("收盘")), "成交量": _round2(r.get("成交量")),
-                "成交额": _round2(r.get("成交额")), "涨跌幅(%)": _round2(r.get("涨跌幅")),
-            })
-        return {"meta": {"代码": symbol, "market": "A", "周期": period, "数据条数": len(records)}, "data": records}
+        # 优先使用 akshare
+        if ak is not None:
+            try:
+                period_map = {"daily": "daily", "weekly": "weekly", "monthly": "monthly"}
+                end_date = datetime.now().strftime("%Y%m%d")
+                start_date = (datetime.now() - timedelta(days=days)).strftime("%Y%m%d")
+                with _disable_proxy():
+                    df = ak.stock_zh_a_hist(
+                    symbol=symbol, period=period_map.get(period, "daily"),
+                    start_date=start_date, end_date=end_date, adjust="qfq",
+                )
+                if df is not None and not df.empty:
+                    df = df.tail(max_rows)
+                    records = []
+                    for _, r in df.iterrows():
+                        records.append({
+                            "日期": _date_str(r.get("日期")), "开盘": _round2(r.get("开盘")),
+                            "最高": _round2(r.get("最高")), "最低": _round2(r.get("最低")),
+                            "收盘": _round2(r.get("收盘")), "成交量": _round2(r.get("成交量")),
+                            "成交额": _round2(r.get("成交额")), "涨跌幅(%)": _round2(r.get("涨跌幅")),
+                        })
+                    return {"meta": {"代码": symbol, "market": "A", "周期": period, "数据条数": len(records)}, "data": records}
+            except Exception as e:
+                # akshare 失败，fallback 到 yfinance
+                pass
+
+        # akshare 失败或不可用，使用 yfinance fallback
+        if yf is None:
+            return {"error": "akshare 和 yfinance 均不可用，无法获取A股数据"}
+
+        try:
+            # 转换代码格式: A股 -> yfinance 格式
+            # 上海股票(60/68/688开头)用 .SS，深圳股票(00/30/002/003开头)用 .SZ
+            yf_symbol = symbol
+            if not symbol.endswith(".SZ") and not symbol.endswith(".SS"):
+                if symbol.startswith(("6", "688")):
+                    yf_symbol = f"{symbol}.SS"
+                else:
+                    yf_symbol = f"{symbol}.SZ"
+
+            period_map = {"daily": "1d", "weekly": "1wk", "monthly": "1mo"}
+            end = datetime.now()
+            start = end - timedelta(days=days)
+            df = yf.download(
+                yf_symbol, start=start.strftime("%Y-%m-%d"), end=end.strftime("%Y-%m-%d"),
+                interval=period_map.get(period, "1d"), progress=False,
+            )
+            if df is None or df.empty:
+                return {"error": f"未找到 {symbol} 的历史数据"}
+            df = df.tail(max_rows)
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.get_level_values(0)
+            records = []
+            for date_idx, r in df.iterrows():
+                records.append({
+                    "日期": _date_str(date_idx), "开盘": _round2(r.get("Open")),
+                    "最高": _round2(r.get("High")), "最低": _round2(r.get("Low")),
+                    "收盘": _round2(r.get("Close")), "成交量": _round2(r.get("Volume")),
+                })
+            return {"meta": {"代码": symbol, "market": "A", "周期": period, "数据条数": len(records), "data_source": "yfinance"}, "data": records}
+        except Exception as e:
+            return {"error": f"获取 {symbol} 历史数据失败: {str(e)}"}
 
     elif market == "US":
         if yf is None:
@@ -231,7 +348,8 @@ def fetch_index_quote(index_name: str = "all") -> dict:
     need_domestic = index_name == "all" or index_name in domestic_indices
     if need_domestic and ak is not None:
         try:
-            df = ak.stock_zh_index_spot_em()
+            with _disable_proxy():
+                df = ak.stock_zh_index_spot_em()
             if df is not None and not df.empty:
                 target_names = list(domestic_indices.values()) if index_name == "all" else [domestic_indices[index_name]]
                 for name in target_names:
@@ -279,7 +397,8 @@ def fetch_forex(pair: str = "all") -> dict:
     # 优先尝试 akshare
     if ak is not None:
         try:
-            df = ak.fx_spot_quote()
+            with _disable_proxy():
+                df = ak.fx_spot_quote()
             if df is not None and not df.empty:
                 if pair == "ALL":
                     for _, r in df.head(20).iterrows():
@@ -342,7 +461,8 @@ def fetch_commodity(commodity: str = "all") -> dict:
     # akshare 获取国内期货（铁矿石）
     if ak is not None and (commodity == "all" or commodity == "铁矿石"):
         try:
-            df = ak.futures_main_sina()
+            with _disable_proxy():
+                df = ak.futures_main_sina()
             if df is not None and not df.empty:
                 row = df[df["symbol"].str.startswith("I0")]
                 if not row.empty:
@@ -390,7 +510,8 @@ def fetch_etf_realtime(symbol: str, market: str = "A") -> dict:
     if ak is None:
         return {"error": "akshare 未安装，无法获取ETF数据"}
 
-    df = ak.fund_etf_spot_em()
+    with _disable_proxy():
+        df = ak.fund_etf_spot_em()
     if df is None or df.empty:
         return {"error": "未获取到ETF行情数据"}
 
@@ -435,7 +556,8 @@ def fetch_etf_history(symbol: str, period: str = "daily",
     else:
         start_date = start_date.replace("-", "")
 
-    df = ak.fund_etf_hist_em(
+    with _disable_proxy():
+        df = ak.fund_etf_hist_em(
         symbol=symbol, period=ak_period,
         start_date=start_date, end_date=end_date, adjust="qfq",
     )
@@ -467,66 +589,67 @@ def fetch_convertible_bond(symbol: str = None) -> dict:
     if ak is None:
         return {"error": "akshare 未安装，无法获取可转债数据"}
 
-    try:
-        df = ak.bond_cb_jsl()
-    except Exception:
+    with _disable_proxy():
         try:
-            df = ak.bond_zh_cov_value_analysis()
-        except Exception as e:
-            return {"error": f"获取可转债数据失败: {str(e)}"}
+            df = ak.bond_cb_jsl()
+        except Exception:
+            try:
+                df = ak.bond_zh_cov_value_analysis()
+            except Exception as e:
+                return {"error": f"获取可转债数据失败: {str(e)}"}
 
-    if df is None or df.empty:
-        return {"error": "未获取到可转债数据"}
+        if df is None or df.empty:
+            return {"error": "未获取到可转债数据"}
 
-    # 标准化列名映射（集思录数据列名可能不同版本有差异）
-    col_map = {}
-    for col in df.columns:
-        col_lower = str(col).lower()
-        if "代码" in col or "bond_id" in col_lower:
-            col_map["code"] = col
-        elif "名称" in col or "bond_nm" in col_lower:
-            col_map["name"] = col
-        elif "现价" in col or "price" in col_lower:
-            col_map["price"] = col
-        elif "转股价" in col or "convert_price" in col_lower or "转股价格" in col:
-            col_map["conversion_price"] = col
-        elif "转股价值" in col or "convert_value" in col_lower:
-            col_map["conversion_value"] = col
-        elif "溢价率" in col or "premium" in col_lower:
-            col_map["premium_rate"] = col
-        elif "到期收益率" in col or "ytm" in col_lower:
-            col_map["ytm"] = col
-        elif "信用" in col or "rating" in col_lower:
-            col_map["credit_rating"] = col
-        elif "剩余" in col or "remain" in col_lower:
-            col_map["remaining_years"] = col
+        # 标准化列名映射（集思录数据列名可能不同版本有差异）
+        col_map = {}
+        for col in df.columns:
+            col_lower = str(col).lower()
+            if "代码" in col or "bond_id" in col_lower:
+                col_map["code"] = col
+            elif "名称" in col or "bond_nm" in col_lower:
+                col_map["name"] = col
+            elif "现价" in col or "price" in col_lower:
+                col_map["price"] = col
+            elif "转股价" in col or "convert_price" in col_lower or "转股价格" in col:
+                col_map["conversion_price"] = col
+            elif "转股价值" in col or "convert_value" in col_lower:
+                col_map["conversion_value"] = col
+            elif "溢价率" in col or "premium" in col_lower:
+                col_map["premium_rate"] = col
+            elif "到期收益率" in col or "ytm" in col_lower:
+                col_map["ytm"] = col
+            elif "信用" in col or "rating" in col_lower:
+                col_map["credit_rating"] = col
+            elif "剩余" in col or "remain" in col_lower:
+                col_map["remaining_years"] = col
 
-    if symbol is not None:
-        code_col = col_map.get("code", df.columns[0])
-        row = df[df[code_col].astype(str) == str(symbol)]
-        if row.empty:
-            return {"error": f"未找到可转债代码 {symbol}"}
-        r = row.iloc[0]
-        return {
-            "代码": str(r.get(col_map.get("code", ""), symbol)),
-            "名称": str(r.get(col_map.get("name", ""), "")),
-            "现价": _round2(r.get(col_map.get("price", ""))),
-            "转股价": _round2(r.get(col_map.get("conversion_price", ""))),
-            "转股价值": _round2(r.get(col_map.get("conversion_value", ""))),
-            "溢价率(%)": _round2(r.get(col_map.get("premium_rate", ""))),
-            "到期收益率(%)": _round2(r.get(col_map.get("ytm", ""))),
-            "信用评级": str(r.get(col_map.get("credit_rating", ""), "")),
-            "剩余年限": _round2(r.get(col_map.get("remaining_years", ""))),
-        }
+        if symbol is not None:
+            code_col = col_map.get("code", df.columns[0])
+            row = df[df[code_col].astype(str) == str(symbol)]
+            if row.empty:
+                return {"error": f"未找到可转债代码 {symbol}"}
+            r = row.iloc[0]
+            return {
+                "代码": str(r.get(col_map.get("code", ""), symbol)),
+                "名称": str(r.get(col_map.get("name", ""), "")),
+                "现价": _round2(r.get(col_map.get("price", ""))),
+                "转股价": _round2(r.get(col_map.get("conversion_price", ""))),
+                "转股价值": _round2(r.get(col_map.get("conversion_value", ""))),
+                "溢价率(%)": _round2(r.get(col_map.get("premium_rate", ""))),
+                "到期收益率(%)": _round2(r.get(col_map.get("ytm", ""))),
+                "信用评级": str(r.get(col_map.get("credit_rating", ""), "")),
+                "剩余年限": _round2(r.get(col_map.get("remaining_years", ""))),
+            }
 
-    # 返回全部，按溢价率排序
-    premium_col = col_map.get("premium_rate")
-    if premium_col and premium_col in df.columns:
-        df = df.sort_values(by=premium_col, ascending=True)
+        # 返回全部，按溢价率排序
+        premium_col = col_map.get("premium_rate")
+        if premium_col and premium_col in df.columns:
+            df = df.sort_values(by=premium_col, ascending=True)
 
-    max_rows = config.max_records
-    records = _df_to_records(df.head(max_rows))
-    return {"data": records, "count": len(records)}
+        max_rows = config.max_records
+        records = _df_to_records(df.head(max_rows))
+        return {"data": records, "count": len(records)}
 
 
 # ===================================================================
