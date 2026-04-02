@@ -9,17 +9,21 @@
 
 import json
 import os
+import sys
 import re
 import fcntl
 import hashlib
 from datetime import datetime, timezone
 
+_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _base not in sys.path:
+    sys.path.insert(0, _base)
+
+from config import config
+from utils.errors import handle_errors, MCPToolError, ErrorCode
+
 # ── 路径约定 ─────────────────────────────────────────────
-_MCP_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_WORKSPACE_ROOT = os.path.dirname(_MCP_ROOT)
-_REPORTS_DIR = os.path.join(_WORKSPACE_ROOT, "reports")
-_INDEX_JSON = os.path.join(_WORKSPACE_ROOT, "index.json")
-_TEMPLATE_DIR = os.path.join(_MCP_ROOT, "templates")
+_TEMPLATE_DIR = os.path.join(config.mcp_root, "templates")
 
 # ── 内置 Fallback 模板 ──────────────────────────────────
 DEFAULT_TEMPLATE = r"""<!DOCTYPE html>
@@ -449,10 +453,11 @@ def _generate_id(title: str) -> str:
 
 def _read_index() -> list[dict]:
     """读取 index.json，不存在则返回空列表。"""
-    if not os.path.exists(_INDEX_JSON):
+    idx_path = config.index_json_path
+    if not os.path.exists(idx_path):
         return []
     try:
-        with open(_INDEX_JSON, "r", encoding="utf-8") as f:
+        with open(idx_path, "r", encoding="utf-8") as f:
             data = json.load(f)
         if isinstance(data, list):
             return data
@@ -465,8 +470,9 @@ def _read_index() -> list[dict]:
 
 def _write_index(reports: list[dict]) -> None:
     """将研报列表写回 index.json（带文件锁）。"""
-    os.makedirs(os.path.dirname(_INDEX_JSON), exist_ok=True)
-    with open(_INDEX_JSON, "w", encoding="utf-8") as f:
+    idx_path = config.index_json_path
+    os.makedirs(os.path.dirname(idx_path), exist_ok=True)
+    with open(idx_path, "w", encoding="utf-8") as f:
         fcntl.flock(f, fcntl.LOCK_EX)
         try:
             json.dump(reports, f, ensure_ascii=False, indent=2)
@@ -476,15 +482,154 @@ def _write_index(reports: list[dict]) -> None:
 
 
 # ═══════════════════════════════════════════════════════════
+# 独立业务函数（可被 pytest 直接测试）
+# ═══════════════════════════════════════════════════════════
+
+@handle_errors
+def build_report(title: str, content: str, author: str = "投研AI团队",
+                 category: str = "宏观研究", tags: str = "",
+                 filename: str = "") -> dict:
+    """将 Markdown 内容生成为专业 HTML 研报文件的核心逻辑。"""
+    reports_dir = config.abs_reports_dir
+    os.makedirs(reports_dir, exist_ok=True)
+
+    # 读取外部模板或使用内置模板
+    template_path = os.path.join(_TEMPLATE_DIR, "report_base.html")
+    if os.path.isfile(template_path):
+        with open(template_path, "r", encoding="utf-8") as f:
+            template = f.read()
+    else:
+        template = DEFAULT_TEMPLATE
+
+    body_html = _md_to_html(content)
+    toc_html = _extract_toc(body_html)
+
+    tag_list = [t.strip() for t in tags.split(",") if t.strip()]
+    tags_html = "".join(f'<span class="tag">{t}</span>' for t in tag_list)
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    year = datetime.now().strftime("%Y")
+
+    html = template
+    for placeholder, value in [
+        ("{{TITLE}}", title), ("{{AUTHOR}}", author), ("{{DATE}}", today),
+        ("{{CATEGORY}}", category), ("{{TOC}}", toc_html),
+        ("{{TAGS_HTML}}", tags_html), ("{{CONTENT}}", body_html),
+        ("{{YEAR}}", year),
+    ]:
+        html = html.replace(placeholder, value)
+
+    if not filename:
+        filename = _make_slug(title)
+    if not filename.endswith(".html"):
+        filename += ".html"
+    out_path = os.path.join(reports_dir, filename)
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write(html)
+
+    rel_path = f"reports/{filename}"
+    _auto_register(title=title, author=author, category=category,
+                   tags=tag_list, path=rel_path, date=today)
+
+    return {"status": "success", "path": rel_path, "title": title, "url": rel_path}
+
+
+@handle_errors
+def build_data_table(headers: str, rows: str, title: str = "",
+                     highlight_cols: str = "") -> dict:
+    """生成可嵌入研报的 HTML 数据表格核心逻辑。"""
+    header_list = [h.strip() for h in headers.split(",")]
+    row_list = []
+    for row_str in rows.split(";"):
+        row_str = row_str.strip()
+        if row_str:
+            row_list.append([c.strip() for c in row_str.split(",")])
+
+    hl_set: set[int] = set()
+    if highlight_cols.strip():
+        for c in highlight_cols.split(","):
+            c = c.strip()
+            if c.isdigit():
+                hl_set.add(int(c))
+
+    def _is_numeric(v: str) -> bool:
+        return bool(re.match(r"^[-+]?\d[\d,.%]*%?$", v.strip()))
+
+    # HTML 表格
+    table_style = (
+        'style="width:100%;border-collapse:collapse;font-size:0.9rem;'
+        'margin:18px 0;"'
+    )
+    html = ""
+    if title:
+        html += (
+            f'<div style="color:#58a6ff;font-weight:600;'
+            f'margin-bottom:6px;font-size:0.95rem;">{title}</div>\n'
+        )
+    html += f"<table {table_style}>\n<thead><tr>"
+    for idx, h in enumerate(header_list):
+        bg = "#1a2744" if idx in hl_set else "#161b22"
+        html += (
+            f'<th style="background:{bg};color:#e6edf3;font-weight:600;'
+            f'padding:10px 14px;text-align:left;'
+            f'border-bottom:2px solid #30363d;">{h}</th>'
+        )
+    html += "</tr></thead>\n<tbody>"
+
+    for r_idx, row in enumerate(row_list):
+        row_bg = "rgba(255,255,255,0.02)" if r_idx % 2 == 0 else "transparent"
+        html += f'<tr style="background:{row_bg};">'
+        for c_idx, cell in enumerate(row):
+            align = "right" if _is_numeric(cell) and c_idx > 0 else "left"
+            hl_bg = "background:rgba(88,166,255,0.08);" if c_idx in hl_set else ""
+            html += (
+                f'<td style="padding:8px 14px;{hl_bg}'
+                f'border-bottom:1px solid #21262d;text-align:{align};">'
+                f"{cell}</td>"
+            )
+        html += "</tr>"
+    html += "</tbody>\n</table>"
+
+    # Markdown 表格
+    md = "| " + " | ".join(header_list) + " |\n"
+    md += "| " + " | ".join(["---"] * len(header_list)) + " |\n"
+    for row in row_list:
+        padded = row + [""] * (len(header_list) - len(row))
+        md += "| " + " | ".join(padded[: len(header_list)]) + " |\n"
+
+    return {"html": html, "markdown": md.strip()}
+
+
+@handle_errors
+def do_register_report(title: str, category: str, tags: str, summary: str,
+                       path: str, author: str = "投研AI团队",
+                       date: str = "") -> dict:
+    """将研报元数据注册到 index.json 知识库索引的核心逻辑。"""
+    if not date:
+        date = datetime.now().strftime("%Y-%m-%d")
+
+    tag_list = [t.strip() for t in tags.split(",") if t.strip()]
+    report_id = _generate_id(title)
+
+    reports = _read_index()
+    record = {
+        "id": report_id, "title": title, "author": author, "date": date,
+        "tags": tag_list, "category": category, "summary": summary,
+        "filePath": path, "lastUpdated": datetime.now(timezone.utc).isoformat(),
+    }
+    reports.append(record)
+    _write_index(reports)
+
+    return {"status": "success", "id": report_id, "total_reports": len(reports)}
+
+
+# ═══════════════════════════════════════════════════════════
 # 注册入口
 # ═══════════════════════════════════════════════════════════
 
 def register_tools(mcp):
     """将研报生成工具集注册到 FastMCP 实例。"""
 
-    # ─────────────────────────────────────────────────────
-    # 工具 1: generate_report
-    # ─────────────────────────────────────────────────────
     @mcp.tool
     def generate_report(
         title: str,
@@ -511,76 +656,8 @@ def register_tools(mcp):
         Returns:
             包含 status, path, title, url 的字典
         """
-        try:
-            # 确保 reports 目录存在
-            os.makedirs(_REPORTS_DIR, exist_ok=True)
+        return build_report(title, content, author, category, tags, filename)
 
-            # 读取外部模板或使用内置模板
-            template_path = os.path.join(_TEMPLATE_DIR, "report_base.html")
-            if os.path.isfile(template_path):
-                with open(template_path, "r", encoding="utf-8") as f:
-                    template = f.read()
-            else:
-                template = DEFAULT_TEMPLATE
-
-            # Markdown → HTML
-            body_html = _md_to_html(content)
-
-            # 生成 TOC
-            toc_html = _extract_toc(body_html)
-
-            # 标签 HTML
-            tag_list = [t.strip() for t in tags.split(",") if t.strip()]
-            tags_html = "".join(f'<span class="tag">{t}</span>' for t in tag_list)
-
-            # 日期
-            today = datetime.now().strftime("%Y-%m-%d")
-            year = datetime.now().strftime("%Y")
-
-            # 模板替换
-            html = template
-            html = html.replace("{{TITLE}}", title)
-            html = html.replace("{{AUTHOR}}", author)
-            html = html.replace("{{DATE}}", today)
-            html = html.replace("{{CATEGORY}}", category)
-            html = html.replace("{{TOC}}", toc_html)
-            html = html.replace("{{TAGS_HTML}}", tags_html)
-            html = html.replace("{{CONTENT}}", body_html)
-            html = html.replace("{{YEAR}}", year)
-
-            # 输出文件
-            if not filename:
-                filename = _make_slug(title)
-            if not filename.endswith(".html"):
-                filename += ".html"
-            out_path = os.path.join(_REPORTS_DIR, filename)
-            with open(out_path, "w", encoding="utf-8") as f:
-                f.write(html)
-
-            # 注册到 index.json
-            rel_path = f"reports/{filename}"
-            _auto_register(
-                title=title,
-                author=author,
-                category=category,
-                tags=tag_list,
-                path=rel_path,
-                date=today,
-            )
-
-            return {
-                "status": "success",
-                "path": rel_path,
-                "title": title,
-                "url": rel_path,
-            }
-
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
-
-    # ─────────────────────────────────────────────────────
-    # 工具 2: create_data_table
-    # ─────────────────────────────────────────────────────
     @mcp.tool
     def create_data_table(
         headers: str,
@@ -602,75 +679,8 @@ def register_tools(mcp):
         Returns:
             包含 html 和 markdown 两个键的字典
         """
-        try:
-            header_list = [h.strip() for h in headers.split(",")]
-            row_list = []
-            for row_str in rows.split(";"):
-                row_str = row_str.strip()
-                if row_str:
-                    row_list.append([c.strip() for c in row_str.split(",")])
+        return build_data_table(headers, rows, title, highlight_cols)
 
-            hl_set: set[int] = set()
-            if highlight_cols.strip():
-                for c in highlight_cols.split(","):
-                    c = c.strip()
-                    if c.isdigit():
-                        hl_set.add(int(c))
-
-            # 判断单元格内容是否为数字
-            def _is_numeric(v: str) -> bool:
-                return bool(re.match(r"^[-+]?\d[\d,.%]*%?$", v.strip()))
-
-            # ── HTML 表格 ──
-            table_style = (
-                'style="width:100%;border-collapse:collapse;font-size:0.9rem;'
-                'margin:18px 0;"'
-            )
-            html = ""
-            if title:
-                html += (
-                    f'<div style="color:#58a6ff;font-weight:600;'
-                    f'margin-bottom:6px;font-size:0.95rem;">{title}</div>\n'
-                )
-            html += f"<table {table_style}>\n<thead><tr>"
-            for idx, h in enumerate(header_list):
-                bg = "#1a2744" if idx in hl_set else "#161b22"
-                html += (
-                    f'<th style="background:{bg};color:#e6edf3;font-weight:600;'
-                    f'padding:10px 14px;text-align:left;'
-                    f'border-bottom:2px solid #30363d;">{h}</th>'
-                )
-            html += "</tr></thead>\n<tbody>"
-
-            for r_idx, row in enumerate(row_list):
-                row_bg = "rgba(255,255,255,0.02)" if r_idx % 2 == 0 else "transparent"
-                html += f'<tr style="background:{row_bg};">'
-                for c_idx, cell in enumerate(row):
-                    align = "right" if _is_numeric(cell) and c_idx > 0 else "left"
-                    hl_bg = "background:rgba(88,166,255,0.08);" if c_idx in hl_set else ""
-                    html += (
-                        f'<td style="padding:8px 14px;{hl_bg}'
-                        f'border-bottom:1px solid #21262d;text-align:{align};">'
-                        f"{cell}</td>"
-                    )
-                html += "</tr>"
-            html += "</tbody>\n</table>"
-
-            # ── Markdown 表格 ──
-            md = "| " + " | ".join(header_list) + " |\n"
-            md += "| " + " | ".join(["---"] * len(header_list)) + " |\n"
-            for row in row_list:
-                padded = row + [""] * (len(header_list) - len(row))
-                md += "| " + " | ".join(padded[: len(header_list)]) + " |\n"
-
-            return {"html": html, "markdown": md.strip()}
-
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
-
-    # ─────────────────────────────────────────────────────
-    # 工具 3: register_report
-    # ─────────────────────────────────────────────────────
     @mcp.tool
     def register_report(
         title: str,
@@ -698,37 +708,8 @@ def register_tools(mcp):
         Returns:
             包含 status, id, total_reports 的字典
         """
-        try:
-            if not date:
-                date = datetime.now().strftime("%Y-%m-%d")
-
-            tag_list = [t.strip() for t in tags.split(",") if t.strip()]
-            report_id = _generate_id(title)
-
-            reports = _read_index()
-
-            record = {
-                "id": report_id,
-                "title": title,
-                "author": author,
-                "date": date,
-                "tags": tag_list,
-                "category": category,
-                "summary": summary,
-                "filePath": path,
-                "lastUpdated": datetime.now(timezone.utc).isoformat(),
-            }
-            reports.append(record)
-            _write_index(reports)
-
-            return {
-                "status": "success",
-                "id": report_id,
-                "total_reports": len(reports),
-            }
-
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
+        return do_register_report(title, category, tags, summary, path,
+                                  author, date)
 
 
 # ── 内部辅助：generate_report 自动注册 ──

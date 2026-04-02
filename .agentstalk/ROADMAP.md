@@ -1,7 +1,8 @@
-# 投研助手路线图 v1.0
+# 投研助手路线图 v1.1
 
 > 创建时间：2026-04-02
 > 更新日期：2026-04-02
+> 更新说明：添加P0级数据质量问题修复项
 
 ---
 
@@ -41,20 +42,22 @@
 
 | 优先级 | 数据类型 | 推荐来源 | 备注 |
 |--------|----------|----------|------|
-| **P0** | A股指数/日线 | 东方财富（已集成）/ AKShare | 免费 |
-| **P0** | 个股K线/财务 | Tushare / AKShare | 需注册 |
+| **P0** | A股指数/日线 | yfinance (primary) / AKShare (fallback) | 免费 |
+| **P0** | 个股K线/财务 | yfinance (primary) / Tushare (fallback) | 需注册 |
 | **P1** | 宏观指标 | AKShare（国家统计局封装）/ FRED API | 免费 |
 | **P1** | 期货/大宗商品 | AKShare + yfinance | 免费 |
 | **P2** | 行业数据 | 协会官网/乘联会/奥维云网 | 部分付费 |
 | **P2** | 港股 | Yahoo Finance (yfinance) | 免费 |
 | **P3** | 美股 | yfinance | 免费 |
 
+> ⚠️ **重要**：yfinance为A股数据源首选（000988.SZ格式），避免使用网上搜索的过时股价数据
+
 #### 推荐Python依赖
 
 ```
 tushare>=1.4.0        # A股/财务数据（需注册获取Token）
-akshare>=1.13.0       # 全市场免费数据（首选）
-yfinance>=0.2.40      # 国际市场行情
+akshare>=1.13.0       # 全市场免费数据（fallback）
+yfinance>=0.2.40      # 国际市场行情（A股首选）
 pandas>=2.0.0         # 数据处理
 requests>=2.31.0       # HTTP请求
 fredapi>=0.5.0        # FRED宏观数据（需免费API Key）
@@ -167,33 +170,64 @@ data/
 | 数据管道脚本 | ✅ 完成 | `scripts/data-pipeline/fetch_*.py` |
 | UBS绘图工具 | ✅ 完成 | `tools/chart_*.py`, `styles/ubs.mplstyle` |
 | MCP测试文档 | ✅ 完成 | `docs/MCP_TEST_GUIDE.md` |
-| 调研阶段 | ✅ 完成 | 4个调研Agent已完成 |
+| 华工科技研报 | ✅ 完成 | 4个Agent并行完成 |
 
-### 待改进 (P0)
+### 待修复 (P0) - 数据质量问题 【新增】
 
-| 模块 | 问题 | 说明 |
-|------|------|------|
-| 数据管道脚本 | start_date/end_date未使用 | 日期过滤功能缺失 |
-| UBS绘图工具 | 样式配置两处重复 | DRY违反 |
+| 模块 | 问题 | 影响 | 修复方案 |
+|------|------|------|----------|
+| **股价数据失真** | 华工科技实际100元，研报显示41.82元 | 研报数据不可信 | **强制使用yfinance**，禁止从网上搜索股价 |
+| **财报数据滞后** | 2025年一季报已发布，仍使用estimate | 分析基于过时数据 | **添加财报日期检查**，优先使用实际数据 |
+| **数据验证缺失** | DataAgent未验证数据合理性 | 错误数据流入研报 | **添加数据校验规则**（如股价范围检查） |
 
-### 待开发
+### 数据质量SOP更新 【新增】
 
-| 模块 | 优先级 | 说明 |
-|------|--------|------|
-| 缓存集成 | P0 | MCP中已有cache.py但未使用 |
-| 重试机制 | P1 | 添加tenacity重试 |
-| mplfinance集成 | P1 | K线图支持 |
-| 增量更新 | P2 | 数据管道优化 |
+```markdown
+### 数据获取优先级（强制）
+
+1. **股价数据**
+   - P0: yfinance (代码格式: 000988.SZ)
+   - P1: 东方财富API
+   - ❌ 禁止: 网上搜索的股价数据
+
+2. **财务数据**
+   - P0: yfinance (.financials / .quarterly_financials)
+   - P1: 巨潮资讯网 (官方财报)
+   - 检查点: 必须获取最新已发布财报，而非预测值
+
+3. **数据验证 checklist**
+   - [ ] 股价是否在合理范围 (A股一般 1-1000元)
+   - [ ] 市值是否与股价×股本匹配
+   - [ ] 财报日期是否为最新
+   - [ ] PE/PB是否在合理范围
+```
 
 ---
 
 ## 三、待办任务清单
 
-### P0 - 核心基础设施
+### P0 - 紧急修复 (本周完成)
+
+- [ ] **修复股价获取脚本**
+  - [ ] 更新 `tools/fetch_stock_data.py` - 强制使用yfinance
+  - [ ] 添加股价合理性校验 (1-1000元)
+  - [ ] 添加市值交叉验证
+
+- [ ] **修复财报数据获取**
+  - [ ] 添加财报发布日期检查
+  - [ ] 优先使用实际财报数据而非预测
+  - [ ] 添加季度数据自动获取
+
+- [ ] **数据验证中间件**
+  - [ ] 创建 `tools/data_validator.py`
+  - [ ] 实现股价/市值/PE范围检查
+  - [ ] 实现财报日期新鲜度检查
+
+### P1 - 数据管道完善
 
 - [ ] **数据获取脚本**
-  - [ ] `tools/fetch_index_data.py` - 已有，需补充文档
-  - [ ] `scripts/data-pipeline/fetch_macro_data.py` - 宏观GDP/CPI/PPI
+  - [ ] `tools/fetch_index_data.py` - 已有，补充文档
+  - [ ] `scripts/data-pipeline/fetch_macro_data.py` - 宏观数据
   - [ ] `scripts/data-pipeline/fetch_stock_daily.py` - A股个股日线
   - [ ] `scripts/data-pipeline/fetch_futures.py` - 期货数据
 
@@ -202,35 +236,53 @@ data/
   - [ ] `styles/ubs.mplstyle` - Matplotlib样式文件
   - [ ] `tools/chart_generator.py` - 图表生成器基类
 
-### P1 - MCP测试文档
+---
 
-- [ ] **数据获取测试**
-  - [ ] Tushare API连接测试
-  - [ ] AKShare数据完整性测试
-  - [ ] 东方财富接口稳定性测试
-  - [ ] FRED API宏数据测试
+## 四、已识别问题详细记录
 
-- [ ] **批量分析测试**
-  - [ ] 多股票数据批量抓取测试
-  - [ ] 宏观数据定时更新测试
-  - [ ] 数据清洗流程测试
+### Issue #1: 股价数据失真
 
-- [ ] **绘图脚本测试**
-  - [ ] 时间序列图渲染测试
-  - [ ] 柱状图/堆叠柱状图测试
-  - [ ] 热力图渲染测试
-  - [ ] 中文字体显示测试
+**现象**: 华工科技(000988.SZ)实际股价约100元，但研报显示41.82元
 
-### P2 - 流程自动化
+**根因**: DataAgent使用WebSearch获取股价，而非直接调用yfinance API
 
-- [ ] **研报生成闭环**
-  - [ ] 数据获取 → 分析 → 图表生成 → HTML输出
-  - [ ] index.json自动更新
-  - [ ] .agentstalk/状态同步
+**影响**: 
+- 研报估值数据完全错误
+- 目标价计算失真
+- 投资结论不可信
+
+**修复方案**:
+1. 强制使用yfinance获取股价：`yf.Ticker('000988.SZ').info['currentPrice']`
+2. 添加校验：股价应在1-1000元之间
+3. 添加交叉验证：市值 = 股价 × 总股本
+
+### Issue #2: 财报数据滞后
+
+**现象**: 2025年一季报已发布，但研报使用estimate预测值
+
+**根因**: DataAgent未检查财报发布日期，直接引用券商预测
+
+**影响**:
+- 分析基于过时数据
+- 投资结论可能偏离实际
+
+**修复方案**:
+1. 添加财报日期检查逻辑
+2. 优先使用 `.quarterly_financials` 获取实际季报
+3. 添加数据新鲜度标签（数据获取时间）
 
 ---
 
-## 四、技术路径
+## 五、技术路径
+
+### Phase 0: 紧急修复（立即执行）
+
+```
+1. 更新 DataAgent SOP - 强制使用yfinance
+2. 创建 data_validator.py 校验模块
+3. 修复华工科技研报中的错误数据
+4. 重新生成研报并发布
+```
 
 ### Phase 1: 数据管道（1-2天）
 
@@ -252,18 +304,9 @@ data/
 5. 编写绘图测试文档
 ```
 
-### Phase 3: 研报闭环（1-2天）
-
-```
-1. 数据获取 → 图表生成 → HTML嵌入
-2. index.json 自动更新
-3. SOP文档扩充
-4. Agent协作流程测试
-```
-
 ---
 
-## 五、MCP工具清单
+## 六、MCP工具清单
 
 ### 已有MCP
 
@@ -275,18 +318,19 @@ data/
 | Notion MCP | 全局集成 | ✅ 可用 |
 | WebSearch | 全局集成 | ✅ 可用 |
 
-### 建议新增MCP
+### 建议新增/修复 MCP
 
-| 工具 | 脚本 | 用途 |
-|------|------|------|
-| fetch_macro_data | `scripts/data-pipeline/fetch_macro_data.py` | 宏观数据 |
-| fetch_stock_data | `scripts/data-pipeline/fetch_stock_daily.py` | A股数据 |
-| fetch_futures_data | `scripts/data-pipeline/fetch_futures.py` | 期货数据 |
-| generate_charts | `tools/chart_generator.py` | 图表生成 |
+| 工具 | 脚本 | 用途 | 优先级 |
+|------|------|------|--------|
+| fetch_stock_data | `tools/fetch_stock_data.py` | 个股数据（强制yfinance） | P0 |
+| data_validator | `tools/data_validator.py` | 数据质量校验 | P0 |
+| fetch_macro_data | `scripts/data-pipeline/fetch_macro_data.py` | 宏观数据 | P1 |
+| fetch_futures_data | `scripts/data-pipeline/fetch_futures.py` | 期货数据 | P1 |
+| generate_charts | `tools/chart_generator.py` | 图表生成 | P1 |
 
 ---
 
-## 六、文件结构
+## 七、文件结构
 
 ```
 投研助手/
@@ -296,17 +340,20 @@ data/
 ├── index.json                # 研报索引 ✅
 ├── AGENTS.md                 # Agent定义 ✅
 ├── SOP/                      # 标准作业程序
-│   └── 研报撰写SOP.md       ✅
+│   ├── 研报撰写SOP.md       ✅
+│   └── 数据获取SOP.md       # 待创建 (P0)
 ├── reports/                  # 研报存储
-│   └── sample-report-001.html ✅
+│   └── 华工科技深度研报/     # 需修复数据
 ├── tools/                    # 工具脚本
 │   ├── fetch_index_data.py   # 已有
+│   ├── fetch_stock_data.py   # 待创建 (P0)
+│   ├── data_validator.py     # 待创建 (P0)
 │   ├── init_report.py        # 已有
 │   ├── update_index_json.py  # 已有
 │   ├── chart_style.py        # 待创建
 │   └── chart_generator.py    # 待创建
 ├── scripts/
-│   └── data-pipeline/        # 待创建
+│   └── data-pipeline/        # 待完善
 │       ├── fetch_macro_data.py
 │       ├── fetch_stock_daily.py
 │       └── fetch_futures.py
@@ -324,8 +371,10 @@ data/
 
 ---
 
-## 七、备注
+## 八、备注
 
+- ⚠️ **P0级问题必须立即修复**：股价和财报数据是研报的核心，数据错误将直接导致投资损失
 - MCP测试文档需要包含：API连接测试、边界条件测试、错误处理测试
 - 所有Python脚本需要包含 `--help` 和 example usage
 - 数据管道脚本需要包含 crontab 定时任务配置示例
+- 数据验证中间件必须成为数据获取流程的强制环节

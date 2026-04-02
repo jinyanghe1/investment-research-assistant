@@ -9,19 +9,25 @@
 
 import json
 import os
+import sys
 
-# ── 路径约定 ─────────────────────────────────────────────
-_MCP_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_WORKSPACE_ROOT = os.path.dirname(_MCP_ROOT)
-_INDEX_JSON = os.path.join(_WORKSPACE_ROOT, "index.json")
+_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _base not in sys.path:
+    sys.path.insert(0, _base)
 
+from config import config
+from utils.errors import handle_errors
+
+
+# ── 内部辅助 ─────────────────────────────────────────────
 
 def _read_index() -> list[dict]:
     """读取 index.json，不存在或解析失败则返回空列表。"""
-    if not os.path.exists(_INDEX_JSON):
+    idx_path = config.index_json_path
+    if not os.path.exists(idx_path):
         return []
     try:
-        with open(_INDEX_JSON, "r", encoding="utf-8") as f:
+        with open(idx_path, "r", encoding="utf-8") as f:
             data = json.load(f)
         if isinstance(data, list):
             return data
@@ -45,12 +51,91 @@ def _slim_record(r: dict) -> dict:
     }
 
 
+def _get_field_text(record: dict, field: str) -> str:
+    """从研报记录中提取指定字段的文本值。"""
+    if field == "tags":
+        tags = record.get("tags", [])
+        if isinstance(tags, list):
+            return " ".join(str(t) for t in tags)
+        return str(tags)
+    if field == "path":
+        return record.get("filePath", record.get("path", ""))
+    value = record.get(field, "")
+    return str(value) if value else ""
+
+
+# ── 独立业务函数（可被 pytest 直接测试） ─────────────────
+
+@handle_errors
+def fetch_reports_list(category: str = "", limit: int = 50,
+                       sort_by: str = "date") -> dict:
+    """列出知识库研报的核心逻辑。"""
+    reports = _read_index()
+
+    if category:
+        category_lower = category.lower()
+        reports = [
+            r for r in reports
+            if category_lower in r.get("category", "").lower()
+        ]
+
+    if sort_by == "date":
+        reports.sort(key=lambda r: r.get("date", ""), reverse=True)
+    elif sort_by == "title":
+        reports.sort(key=lambda r: r.get("title", ""))
+    elif sort_by == "category":
+        reports.sort(key=lambda r: r.get("category", ""))
+
+    total = len(reports)
+    reports = reports[:limit]
+
+    return {"total": total, "reports": [_slim_record(r) for r in reports]}
+
+
+@handle_errors
+def fetch_reports_search(query: str, search_fields: str = "title,tags,summary",
+                         limit: int = 20) -> dict:
+    """关键词搜索研报的核心逻辑。"""
+    reports = _read_index()
+
+    if not query or not query.strip():
+        return {"query": query, "total": 0, "results": []}
+
+    keywords = [kw.lower() for kw in query.strip().split() if kw.strip()]
+    if not keywords:
+        return {"query": query, "total": 0, "results": []}
+
+    fields = [f.strip().lower() for f in search_fields.split(",") if f.strip()]
+
+    scored_results: list[tuple[int, dict]] = []
+    for r in reports:
+        score = 0
+        for field in fields:
+            field_value = _get_field_text(r, field)
+            if not field_value:
+                continue
+            field_lower = field_value.lower()
+            for kw in keywords:
+                if kw in field_lower:
+                    score += 1
+        if score > 0:
+            scored_results.append((score, r))
+
+    scored_results.sort(key=lambda x: x[0], reverse=True)
+    scored_results = scored_results[:limit]
+
+    return {
+        "query": query,
+        "total": len(scored_results),
+        "results": [_slim_record(r) for _, r in scored_results],
+    }
+
+
+# ── 注册入口 ─────────────────────────────────────────────
+
 def register_tools(mcp):
     """将知识库管理工具集注册到 FastMCP 实例。"""
 
-    # ─────────────────────────────────────────────────────
-    # 工具 4: list_reports
-    # ─────────────────────────────────────────────────────
     @mcp.tool
     def list_reports(
         category: str = "",
@@ -70,39 +155,8 @@ def register_tools(mcp):
         Returns:
             包含 total 和 reports 列表的字典
         """
-        try:
-            reports = _read_index()
+        return fetch_reports_list(category, limit, sort_by)
 
-            # 分类过滤
-            if category:
-                category_lower = category.lower()
-                reports = [
-                    r for r in reports
-                    if category_lower in r.get("category", "").lower()
-                ]
-
-            # 排序
-            if sort_by == "date":
-                reports.sort(key=lambda r: r.get("date", ""), reverse=True)
-            elif sort_by == "title":
-                reports.sort(key=lambda r: r.get("title", ""))
-            elif sort_by == "category":
-                reports.sort(key=lambda r: r.get("category", ""))
-
-            total = len(reports)
-            reports = reports[:limit]
-
-            return {
-                "total": total,
-                "reports": [_slim_record(r) for r in reports],
-            }
-
-        except Exception as e:
-            return {"status": "error", "message": str(e), "total": 0, "reports": []}
-
-    # ─────────────────────────────────────────────────────
-    # 工具 5: search_reports
-    # ─────────────────────────────────────────────────────
     @mcp.tool
     def search_reports(
         query: str,
@@ -122,57 +176,4 @@ def register_tools(mcp):
         Returns:
             包含 query, total, results 的字典
         """
-        try:
-            reports = _read_index()
-
-            if not query or not query.strip():
-                return {"query": query, "total": 0, "results": []}
-
-            # 分词
-            keywords = [kw.lower() for kw in query.strip().split() if kw.strip()]
-            if not keywords:
-                return {"query": query, "total": 0, "results": []}
-
-            fields = [f.strip().lower() for f in search_fields.split(",") if f.strip()]
-
-            scored_results: list[tuple[int, dict]] = []
-
-            for r in reports:
-                score = 0
-                for field in fields:
-                    field_value = _get_field_text(r, field)
-                    if not field_value:
-                        continue
-                    field_lower = field_value.lower()
-                    for kw in keywords:
-                        if kw in field_lower:
-                            score += 1
-
-                if score > 0:
-                    scored_results.append((score, r))
-
-            # 按匹配度降序排列
-            scored_results.sort(key=lambda x: x[0], reverse=True)
-            scored_results = scored_results[:limit]
-
-            return {
-                "query": query,
-                "total": len(scored_results),
-                "results": [_slim_record(r) for _, r in scored_results],
-            }
-
-        except Exception as e:
-            return {"status": "error", "message": str(e), "query": query, "total": 0, "results": []}
-
-
-def _get_field_text(record: dict, field: str) -> str:
-    """从研报记录中提取指定字段的文本值。"""
-    if field == "tags":
-        tags = record.get("tags", [])
-        if isinstance(tags, list):
-            return " ".join(str(t) for t in tags)
-        return str(tags)
-    if field == "path":
-        return record.get("filePath", record.get("path", ""))
-    value = record.get(field, "")
-    return str(value) if value else ""
+        return fetch_reports_search(query, search_fields, limit)

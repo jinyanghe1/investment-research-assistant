@@ -26,6 +26,9 @@ Thumbs.db
 *.tmp
 *.log
 
+# MCP缓存数据
+mcp/data/*.json
+
 # 本地数据（保留data/raw目录结构但忽略内容）
 data/raw/*.csv
 !data/raw/.gitkeep

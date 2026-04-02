@@ -7,11 +7,7 @@
 from datetime import datetime
 from typing import Optional, Union
 
-try:
-    import pandas as pd
-    HAS_PANDAS = True
-except ImportError:
-    HAS_PANDAS = False
+
 
 
 def format_number(num: Optional[Union[int, float]], decimals: int = 2) -> str:
@@ -136,7 +132,9 @@ def df_to_markdown_table(df, max_rows: int = 50) -> str:
     Returns:
         Markdown格式的表格字符串
     """
-    if not HAS_PANDAS:
+    try:
+        import pandas as pd
+    except ImportError:
         return "[错误] 需要安装 pandas 库"
 
     if df is None or df.empty:
@@ -181,7 +179,9 @@ def df_to_html_table(df, title: str = "", max_rows: int = 100) -> str:
     Returns:
         HTML格式的表格字符串（含内联样式）
     """
-    if not HAS_PANDAS:
+    try:
+        import pandas as pd
+    except ImportError:
         return "<p>[错误] 需要安装 pandas 库</p>"
 
     if df is None or df.empty:
