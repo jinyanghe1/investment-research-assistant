@@ -1,8 +1,8 @@
-# 投研助手路线图 v2.0
+# 投研助手路线图 v2.1
 
 > 创建时间：2026-04-02
-> 更新日期：2026-04-02 (v2.0 — 项目经理全面审计版)
-> 版本历史：v1.0 初版 → v1.1 添加P0数据质量修复 → **v2.0 全面审计+阶段重规划**
+> 更新日期：2026-04-03 (v2.1 — 快消研报实战 + MCP评估 + 数据源修复)
+> 版本历史：v1.0 初版 → v1.1 添加P0数据质量修复 → v2.0 全面审计+阶段重规划 → **v2.1 MCP实战评估+数据源加固**
 
 ---
 
@@ -95,17 +95,41 @@
 | Git历史清理调研 | git-filter-repo vs BFG 对比，推荐方案 |
 | 政策监控模块 | policy_monitor/core.py + websites.yaml + SOP.md |
 
----
+### 里程碑 9：快消研报实战 + MCP评估 + 数据源加固 (04-03)
 
-## 三、当前状态评估
+| 完成项 | 详情 |
+|--------|------|
+| 中国快消行业深度研究（已撤回） | 尝试使用MCP工具链撰写产业研报，发现MCP使用率仅~5%，大量数据改用web_search获取 |
+| MCP工具链使用评估 | 系统性评估29个工具的可用性，产出评分5.3/10，详见 .agentstalk/20260403_analyst_to_all_mcp-usage-evaluation.md |
+| **数据源Fallback审计** | 发现仅28%工具函数(5/18)有非akshare备源；macro_data.py 100%依赖akshare且0缓存 |
+| **rate_limiter.py** | 新增 `utils/rate_limiter.py` — 令牌桶限速器(每2秒1次) + 指数退避重试装饰器 |
+| **@handle_errors 增强** | 支持 `max_retries` + 指数退避，自动区分可重试异常(Timeout/Connection)和业务错误 |
+| **macro_data.py 缓存集成** | 为 fetch_macro_china/global 添加 DataCache 集成(TTL=24h)，overview模式不再串行7次API |
+| **macro_data.py 限速** | 所有 akshare 直调函数添加 akshare_limiter.wait() 限速 |
+| **data_validator.py 类型安全修复** | 修复净利润/营收非数值时 abs()/乘法 TypeError 崩溃(L208/215) |
+
+### 里程碑 10：宏观数据源重构 (04-03 下午)
+
+| 完成项 | 详情 |
+|--------|------|
+| 中国快消行业深度研究（已撤回） | 尝试使用MCP工具链撰写产业研报，发现MCP使用率仅~5%，大量数据改用web_search获取 |
+| MCP工具链使用评估 | 系统性评估29个工具的可用性，产出评分5.3/10，详见 .agentstalk/20260403_analyst_to_all_mcp-usage-evaluation.md |
+| **数据源Fallback审计** | 发现仅28%工具函数(5/18)有非akshare备源；macro_data.py 100%依赖akshare且0缓存 |
+| **rate_limiter.py** | 新增 `utils/rate_limiter.py` — 令牌桶限速器(每2秒1次) + 指数退避重试装饰器 |
+| **@handle_errors 增强** | 支持 `max_retries` + 指数退避，自动区分可重试异常(Timeout/Connection)和业务错误 |
+| **macro_data.py 缓存集成** | 为 fetch_macro_china/global 添加 DataCache 集成(TTL=24h)，overview模式不再串行7次API |
+| **macro_data.py 限速** | 所有 akshare 直调函数添加 akshare_limiter.wait() 限速 |
+| **data_validator.py 类型安全修复** | 修复净利润/营收非数值时 abs()/乘法 TypeError 崩溃(L208/215) |
+
+---
 
 ### 3.1 模块成熟度矩阵
 
 | 模块 | 成熟度 | 说明 |
 |------|--------|------|
-| **MCP Server (research_mcp)** | 🟢 完善 | 29个工具，Pydantic配置，统一错误处理，186测试通过 |
-| **数据获取层** | 🟡 基本可用 | yfinance/akshare双源，但缓存未启用，日期过滤部分缺失 |
-| **数据验证** | 🟢 完善 | data_validator.py 覆盖股价/市值/PE/财报日期验证 |
+| **MCP Server (research_mcp)** | 🟢 完善 | 29个工具，Pydantic配置，统一错误处理(含重试)，186测试通过 |
+| **数据获取层** | 🟡 基本可用 | yfinance/akshare双源+rate_limiter限速，macro缓存已启用，但仅28%函数有fallback |
+| **数据验证** | 🟢 完善 | data_validator.py 覆盖股价/市值/PE/财报验证，类型安全已修复 |
 | **技术分析** | 🟢 完善 | 8大指标 + 形态识别 + 综合评分，MCP工具已注册 |
 | **基本面分析** | 🟡 基本可用 | 7维覆盖，_EM→_THS fallback，但估值分位数/客户集中度待补 |
 | **研报生成** | 🟡 基本可用 | Markdown→HTML，模板增强，但图表嵌入仍需手动 |
@@ -126,15 +150,34 @@
 | MCP 工具总数 | 29 |
 | 核心代码行数 | ~5,000+ 行 (research_mcp + tools + scripts) |
 | 测试通过数 | 186 passed, 1 skipped |
-| 已发布研报 | 4 份 (3份已注册index.json) |
+| 已发布研报 | 3 份 (均已注册index.json) |
 | SOP文档 | 4 份 |
 | .agentstalk通信记录 | 30+ 份 |
 | Python依赖 | 8 个核心包 (numpy<2 已锁定) |
 | MCP客户端覆盖 | 3端 (Claude Desktop / Kimi CLI / VS Code) |
+| **MCP实战使用率** | **~5% (快消研报场景)** |
+| **Fallback覆盖率** | **33% (6/18个函数有非akshare备源)** |
+| **缓存启用率** | **market_data 100% + macro_data 100% (新增)** |
 
 ---
 
 ## 四、下一阶段规划
+
+### Phase 3.5：MCP 数据源修复 (优先级 P0 — 进行中)
+
+> **目标**：修复本次使用中发现的核心数据获取问题
+
+| # | 任务 | 详情 | 状态 |
+|---|------|------|------|
+| 3.5.1 | **screen_stocks yfinance fallback** | `fetch_screen_stocks` 直接调用akshare，代理环境下失败 | ⏳ 待完成 |
+| 3.5.2 | **get_industry_ranking 备源** | ✅ 新增 `fallback_sources.py`，push2直连+新浪双备源，18项测试全通过 | ✅ 已完成 |
+| 3.5.3 | **宏观数据源重构** | ✅ 已完成。修复3个根因：(1) `_safe_records()` 数据排序问题 → 按日期排序；(2) akshare函数名错误 → `macro_bank_usa_interest_rate`/`macro_euro_cpi_yoy`；(3) 中文日期格式解析 → `2025年第1季度`→`2025-Q1` | ✅ 已完成 (2026-04-03) |
+| 3.5.4 | ~~WebSearch API 修复~~ | ~~`mcp__MiniMax__web_search` 返回token错误~~ | 🔄 外部依赖 |
+| 3.5.5 | **Rate Limiting 优化** | 全局限速器 + 指数退避重试 | ✅ 已完成 (rate_limiter.py + handle_errors增强 + macro_data限速) |
+| 3.5.6 | **返回值格式统一** | 统一错误返回格式 `{"success": false, "error": {...}}` | ⏳ 待完成 |
+| 3.5.7 | **macro_data 缓存集成** | overview模式串行7个API极慢，启用DataCache(TTL=24h) | ✅ 已完成 |
+| 3.5.8 | **data_validator 类型安全** | 非数值类型导致 TypeError 崩溃 | ✅ 已完成 |
+| 3.5.9 | **@handle_errors 重试支持** | 支持 max_retries 参数，自动区分可重试/不可重试异常 | ✅ 已完成 |
 
 ### Phase 4：工程稳固 & 数据可靠性 (优先级 P0)
 
@@ -228,6 +271,9 @@
 | TD-10 | **policy_monitor 配置硬编码** — websites.yaml 路径硬编码在 core.py 中 | 🟡 中 | 代码审查报告 | Phase 8 |
 | TD-11 | **_apply_period_data 性能隐患** — 循环调用最多60次网络请求无超时/采样限制 | 🟡 中 | Phase 2 基线审查 | Phase 7 |
 | TD-12 | **.venv/ 误提交到 Git 历史** — 仓库体积膨胀，已有 git-filter-repo 清理方案 | 🟡 中 | Git清理调研 | Phase 4 |
+| TD-13 | **_safe_float() 返回值不一致** — company_analysis返回"N/A"(str)，fundamental_analysis返回None，下游处理需要分别兼容 | 🟠 高 | 里程碑9审计 | Phase 4 |
+| TD-14 | **macro_data.py 不走 data_source.py** — 直接调用 `ak.*` 而非 `call_akshare()`，缺少统一的代理控制/重试/缓存 | 🟠 高 | 里程碑9审计 | Phase 4 |
+| TD-15 | **config.py timeout 未强制执行** — akshare_timeout/yfinance_timeout 配置存在但未传递给实际 API 调用 | 🟡 中 | 里程碑9审计 | Phase 5 |
 
 ---
 
@@ -241,6 +287,7 @@
 | R-4 | **研报数据失真复发** — Agent 绕过验证中间件 | 🟡 中 | 投资决策错误 | DataValidator 强制门禁 + SOP 约束 + 人工抽检 |
 | R-5 | **Git 历史膨胀** — .venv/ 未清理，仓库体积大 | 🟢 低 | clone 缓慢 | 执行 git-filter-repo 清理方案(已调研) |
 | R-6 | **单点依赖** — 项目依赖免费API，无付费数据源备份 | 🟡 中 | 数据质量上限有限 | 后续考虑 Tushare Pro / Wind 付费接入 |
+| R-7 | **MCP工具链实战可用性低** — 快消研报场景仅~5%使用率，Agent倾向跳过MCP直接web_search | 🟠 高 | 研报质量与效率受限 | 改善数据源可靠性 + 添加行业级分析工具 + 提升fallback覆盖率 |
 
 ---
 
@@ -272,7 +319,7 @@
 ### 公司研究 (7)
 | get_company_financials | 三大报表+核心指标 | akshare + yfinance |
 | screen_stocks | 多条件选股 | akshare |
-| get_industry_ranking | 行业景气度排名 | akshare |
+| get_industry_ranking | 行业景气度排名 | akshare + push2直连 + 新浪 |
 | get_fundamental_profile | 基本面画像 | akshare |
 | get_peer_comparison | 同行对标 | akshare |
 | get_shareholder_analysis | 股东分析 | akshare |
@@ -302,7 +349,7 @@
 │   ├── archived/             # 归档通信
 │   └── backups/              # 回滚备份
 ├── index.html                # Landing Page ✅
-├── index.json                # 研报索引 (4条，含1条测试待清理) ⚠️
+├── index.json                # 研报索引 (5条，含1条测试待清理) ⚠️
 ├── AGENTS.md                 # Agent系统定义 ✅
 ├── README.md                 # 项目说明 ✅
 ├── requirements.txt          # Python依赖 (numpy<2 已锁定) ✅
@@ -407,3 +454,28 @@
 - **项目运行环境**：macOS, Python 3.10.8, Miniconda base (建议迁移至 .venv)
 - **Git仓库**：.venv/ 误提交到历史，建议使用 git-filter-repo 清理
 - **通信协议**：`.agentstalk/[timestamp]_[sender]_to_[receiver]_[topic].md`
+
+---
+
+## 补充：测试SOP要求 (2026-04-03)
+
+### 新增规范
+
+**测试代码绝对禁止Mock数据要求**已写入SOP：
+- `SOP/数据获取SOP.md` - 第7.2节
+- `SOP/测试编写SOP.md` - 完整文档
+
+**核心要求：**
+1. 测试代码必须使用真实API数据
+2. 每个测试必须检查 `data_source != "mock"`
+3. 每个测试必须设置超时控制
+4. Mock数据视为测试失败
+
+**背景：**
+- 快消研报测试使用mock数据，导致MCP工具链实际不可用率95%
+- 华工科技研报测试使用mock股价，未发现真实数据获取问题
+
+**执行：**
+- 所有编写测试的Agent必须阅读 `SOP/测试编写SOP.md`
+- 代码审查必须检查mock数据使用情况
+- 违规测试将被退回修改

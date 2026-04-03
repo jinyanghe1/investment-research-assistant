@@ -6,12 +6,18 @@ company_analysis.py - 上市公司基本面分析工具集
 
 注册模式: register_tools(mcp) 供 FastMCP 3.2.0 服务端调用
 数据源: akshare (A股) + yfinance (美股)
+
+v2.0 更新：
+- 集成 data_source.py 的缓存和退避机制
+- 修复 screen_stocks 和 get_industry_ranking 的 Rate Limiting 问题
+- 增加行业板块数据 N/A 问题的容错处理
 """
 
 import os
 import sys
 import math
 from datetime import datetime
+from typing import Optional, Any
 
 _base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _base not in sys.path:
@@ -20,8 +26,20 @@ if _base not in sys.path:
 from config import config
 from utils.errors import handle_errors, MCPToolError, ErrorCode
 
+# 导入新的数据源管理工具
+from utils.data_source import (
+    call_akshare, try_akshare_apis,
+    get_cache, TTL_MARKET, TTL_COMPANY
+)
 
+# 导入限速器
+from utils.rate_limiter import akshare_limiter, retry_with_backoff
 
+# 导入缓存TTL常量
+from utils.cache import TTL_DEFAULT
+
+# 导入备源 (push2 + 新浪)
+from utils.fallback_sources import fetch_board_fallback as _fetch_board_fallback
 
 # ---------------------------------------------------------------------------
 # 内部工具函数
@@ -63,6 +81,11 @@ def _df_to_records(df, limit=None):
     return records
 
 
+def _get_cache_key(func_name: str, *args, **kwargs) -> str:
+    """生成缓存键。"""
+    return f"{func_name}:{str(args)}:{str(sorted(kwargs.items()))}"
+
+
 # ---------------------------------------------------------------------------
 # 选股子函数
 # ---------------------------------------------------------------------------
@@ -86,7 +109,7 @@ def _apply_filters(ak, df, pd, *, industry, min_pe, max_pe, min_roe,
     # 行业筛选
     if industry:
         try:
-            board_df = ak.stock_board_industry_cons_em(symbol=industry)
+            board_df = call_akshare("stock_board_industry_cons_em", symbol=industry, max_retries=1)
             if board_df is not None and not board_df.empty:
                 code_col = "代码" if "代码" in board_df.columns else board_df.columns[0]
                 industry_codes = set(board_df[code_col].astype(str).tolist())
@@ -203,13 +226,69 @@ def fetch_company_financials(symbol: str, market: str = "A",
                            f"不支持的市场: {market}，可选: A / US")
 
 
+def _get_hot_stocks_fallback() -> dict:
+    """返回简化版热门股票列表作为最终fallback。"""
+    hot_stocks = [
+        {"code": "000001", "name": "平安银行", "price": 10.50, "change_pct": 1.25, 
+         "pe": 4.82, "market_cap_yi": 2100, "amount_yi": 12.5},
+        {"code": "000002", "name": "万科A", "price": 8.20, "change_pct": -0.85, 
+         "pe": 8.15, "market_cap_yi": 980, "amount_yi": 8.3},
+        {"code": "600519", "name": "贵州茅台", "price": 1580.00, "change_pct": 0.52, 
+         "pe": 25.6, "market_cap_yi": 19850, "amount_yi": 25.8},
+        {"code": "000858", "name": "五粮液", "price": 145.20, "change_pct": 0.88, 
+         "pe": 18.2, "market_cap_yi": 5630, "amount_yi": 15.2},
+        {"code": "002594", "name": "比亚迪", "price": 268.50, "change_pct": 2.15, 
+         "pe": 32.5, "market_cap_yi": 7820, "amount_yi": 35.6},
+        {"code": "300750", "name": "宁德时代", "price": 198.00, "change_pct": 1.85, 
+         "pe": 28.3, "market_cap_yi": 8700, "amount_yi": 28.5},
+        {"code": "601318", "name": "中国平安", "price": 42.80, "change_pct": 0.65, 
+         "pe": 8.52, "market_cap_yi": 7820, "amount_yi": 18.2},
+        {"code": "600036", "name": "招商银行", "price": 32.50, "change_pct": 0.42, 
+         "pe": 5.85, "market_cap_yi": 8200, "amount_yi": 12.8},
+        {"code": "000333", "name": "美的集团", "price": 62.80, "change_pct": 0.95, 
+         "pe": 12.8, "market_cap_yi": 4380, "amount_yi": 9.5},
+        {"code": "002415", "name": "海康威视", "price": 28.50, "change_pct": -0.35, 
+         "pe": 22.5, "market_cap_yi": 2650, "amount_yi": 6.8},
+    ]
+    return {
+        "filters": {"market": "A", "industry": "热门股票", "note": "数据源暂时不可用，返回热门股票示例"},
+        "count": len(hot_stocks),
+        "returned": len(hot_stocks),
+        "stocks": hot_stocks,
+        "data_source": "fallback",
+        "warning": "实时选股服务暂时不可用，返回示例热门股票数据。请稍后重试。"
+    }
+
+
 @handle_errors
-def fetch_screen_stocks(market: str = "A", industry: str = "",
-                        min_pe: float = 0, max_pe: float = 100,
-                        min_roe: float = 0, min_market_cap: float = 0,
-                        max_market_cap: float = 0, sort_by: str = "market_cap",
-                        limit: int = 20) -> dict:
-    """多条件股票筛选核心逻辑。"""
+def fetch_screen_stocks(
+    market: str = "A",
+    industry: str = "",
+    min_pe: float = 0,
+    max_pe: float = 100,
+    min_roe: float = 0,
+    min_market_cap: float = 0,
+    max_market_cap: float = 0,
+    sort_by: str = "market_cap",
+    limit: int = 20,
+    use_cache_only: bool = False,
+) -> dict:
+    """多条件股票筛选核心逻辑。
+    
+    Args:
+        market: 市场类型，目前仅支持 "A"
+        industry: 行业筛选关键词
+        min_pe: 最小市盈率
+        max_pe: 最大市盈率
+        min_roe: 最小ROE
+        min_market_cap: 最小市值（亿元）
+        max_market_cap: 最大市值（亿元）
+        sort_by: 排序字段
+        limit: 返回条数
+        use_cache_only: 是否仅使用缓存数据，默认为False
+    """
+    import pandas as pd
+    
     market = market.upper()
     limit = min(max(limit, 1), 50)
     sort_by = sort_by.lower()
@@ -218,8 +297,27 @@ def fetch_screen_stocks(market: str = "A", industry: str = "",
         raise MCPToolError(ErrorCode.INVALID_PARAM,
                            "stock_screen 目前仅支持 A 股市场 (market='A')")
 
-    import akshare as ak
-    import pandas as pd
+    cache_key = _get_cache_key("screen_stocks", market, industry, min_pe, max_pe, 
+                               min_roe, min_market_cap, max_market_cap, sort_by, limit)
+    cache = get_cache()
+    
+    # 尝试缓存（选股结果缓存1小时）
+    if cache:
+        cached = cache.get(cache_key, TTL_MARKET)
+        if cached:
+            if use_cache_only:
+                return {**cached, "data_source": "cache", "cache_mode": "forced"}
+            return cached
+    
+    # 如果强制使用缓存但未命中
+    if use_cache_only:
+        # 尝试获取过期缓存
+        if cache:
+            expired = cache.get(cache_key, ttl_seconds=0)  # 忽略TTL
+            if expired:
+                return {**expired, "data_source": "cache", "cache_mode": "expired", 
+                        "warning": "返回过期缓存数据（强制缓存模式）"}
+        return _get_hot_stocks_fallback()
 
     filters_applied = {
         "market": market,
@@ -230,17 +328,131 @@ def fetch_screen_stocks(market: str = "A", industry: str = "",
         "sort_by": sort_by,
     }
 
-    df = ak.stock_zh_a_spot_em()
-    df = _apply_filters(ak, df, pd, industry=industry, min_pe=min_pe,
-                        max_pe=max_pe, min_roe=min_roe,
-                        min_market_cap=min_market_cap,
-                        max_market_cap=max_market_cap)
-    total_count, stocks = _format_screen_results(df, sort_by, limit)
+    try:
+        # 使用限速器
+        akshare_limiter.wait()
+        # 使用 call_akshare 带重试机制
+        df = call_akshare("stock_zh_a_spot_em", max_retries=2)
+        df = _apply_filters(None, df, pd, industry=industry, min_pe=min_pe,
+                            max_pe=max_pe, min_roe=min_roe,
+                            min_market_cap=min_market_cap,
+                            max_market_cap=max_market_cap)
+        total_count, stocks = _format_screen_results(df, sort_by, limit)
 
-    return {
-        "filters": filters_applied, "count": total_count,
-        "returned": len(stocks), "stocks": stocks,
-    }
+        result = {
+            "filters": filters_applied, 
+            "count": total_count,
+            "returned": len(stocks), 
+            "stocks": stocks,
+            "data_source": "akshare",
+        }
+        
+        # 写入缓存
+        if cache:
+            cache.set(cache_key, result)
+        
+        return result
+    except Exception as e:
+        # akshare失败，尝试返回缓存（即使过期）
+        if cache:
+            expired = cache.get(cache_key, ttl_seconds=0)  # 忽略TTL
+            if expired:
+                return {**expired, "warning": f"数据源暂时不可用，使用过期缓存: {str(e)}",
+                        "data_source": "cache"}
+        
+        # 最终fallback：返回简化热门股票
+        fallback_result = _get_hot_stocks_fallback()
+        fallback_result["filters"] = {**filters_applied, **fallback_result["filters"]}
+        return fallback_result
+
+
+def _fetch_sina_board_data(board_type: str) -> Optional[Any]:
+    """从新浪财经API获取板块数据作为备源。
+    
+    参考API: https://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData
+    """
+    import json
+    import re
+    import urllib.request
+    import urllib.parse
+    
+    # 新浪财经板块列表API
+    try:
+        # 行业板块API
+        if board_type == "industry":
+            url = "https://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData?symbol=dphy&scale=240&ma=5&datalen=1"
+        else:
+            # 概念板块API（使用指数作为替代）
+            url = "https://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData?symbol=dpgn&scale=240&ma=5&datalen=1"
+        
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=10) as response:
+            data = response.read().decode('gbk', errors='ignore')
+            # 新浪API返回的是类JSON格式，需要处理
+            return data
+    except Exception:
+        pass
+    
+    # 尝试新浪行业板块排行API
+    try:
+        url = "https://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getHQNodes"
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=10) as response:
+            return response.read().decode('gbk', errors='ignore')
+    except Exception:
+        pass
+    
+    return None
+
+
+def _get_mock_industry_rankings(board_type: str, limit: int) -> list:
+    """返回mock行业/概念板块排名数据。"""
+    if board_type == "industry":
+        mock_data = [
+            {"name": "半导体", "change_pct": 3.52, "turnover": 4.85, "amount_yi": 852.5, "leading_stock": "中芯国际", "leading_change": 5.28},
+            {"name": "通信设备", "change_pct": 2.85, "turnover": 3.92, "amount_yi": 425.8, "leading_stock": "中兴通讯", "leading_change": 4.15},
+            {"name": "软件开发", "change_pct": 2.36, "turnover": 5.25, "amount_yi": 685.2, "leading_stock": "金山办公", "leading_change": 6.82},
+            {"name": "电力", "change_pct": 1.95, "turnover": 2.15, "amount_yi": 285.6, "leading_stock": "长江电力", "leading_change": 2.35},
+            {"name": "银行", "change_pct": 1.28, "turnover": 0.85, "amount_yi": 385.2, "leading_stock": "招商银行", "leading_change": 1.85},
+            {"name": "白酒", "change_pct": 0.95, "turnover": 1.52, "amount_yi": 425.8, "leading_stock": "贵州茅台", "leading_change": 1.25},
+            {"name": "新能源", "change_pct": 0.68, "turnover": 3.25, "amount_yi": 685.5, "leading_stock": "宁德时代", "leading_change": 1.85},
+            {"name": "医药商业", "change_pct": 0.42, "turnover": 2.85, "amount_yi": 185.2, "leading_stock": "国药股份", "leading_change": 2.15},
+            {"name": "保险", "change_pct": 0.25, "turnover": 0.65, "amount_yi": 125.8, "leading_stock": "中国平安", "leading_change": 0.65},
+            {"name": "证券", "change_pct": -0.35, "turnover": 1.85, "amount_yi": 285.6, "leading_stock": "中信证券", "leading_change": -0.85},
+            {"name": "房地产", "change_pct": -0.85, "turnover": 2.15, "amount_yi": 225.8, "leading_stock": "万科A", "leading_change": -1.25},
+            {"name": "煤炭", "change_pct": -1.25, "turnover": 2.85, "amount_yi": 185.5, "leading_stock": "中国神华", "leading_change": -1.85},
+            {"name": "钢铁", "change_pct": -1.52, "turnover": 1.95, "amount_yi": 125.8, "leading_stock": "宝钢股份", "leading_change": -2.15},
+            {"name": "石油", "change_pct": -1.85, "turnover": 1.25, "amount_yi": 285.2, "leading_stock": "中国石油", "leading_change": -2.35},
+            {"name": "航空", "change_pct": -2.25, "turnover": 3.25, "amount_yi": 185.6, "leading_stock": "中国国航", "leading_change": -3.15},
+        ]
+    else:
+        # 概念板块mock数据
+        mock_data = [
+            {"name": "ChatGPT概念", "change_pct": 4.52, "turnover": 6.85, "amount_yi": 525.5, "leading_stock": "科大讯飞", "leading_change": 8.25},
+            {"name": "AIGC概念", "change_pct": 3.85, "turnover": 5.92, "amount_yi": 425.8, "leading_stock": "万兴科技", "leading_change": 10.02},
+            {"name": "算力租赁", "change_pct": 3.25, "turnover": 8.25, "amount_yi": 385.2, "leading_stock": "鸿博股份", "leading_change": 6.85},
+            {"name": "芯片概念", "change_pct": 2.95, "turnover": 4.15, "amount_yi": 685.6, "leading_stock": "海光信息", "leading_change": 5.25},
+            {"name": "信创", "change_pct": 2.35, "turnover": 5.25, "amount_yi": 425.2, "leading_stock": "中国软件", "leading_change": 4.85},
+            {"name": "东数西算", "change_pct": 1.85, "turnover": 4.85, "amount_yi": 325.8, "leading_stock": "浪潮信息", "leading_change": 3.52},
+            {"name": "元宇宙", "change_pct": 1.25, "turnover": 4.25, "amount_yi": 285.5, "leading_stock": "歌尔股份", "leading_change": 2.85},
+            {"name": "新能源整车", "change_pct": 0.85, "turnover": 3.85, "amount_yi": 485.2, "leading_stock": "比亚迪", "leading_change": 2.15},
+            {"name": "储能", "change_pct": 0.52, "turnover": 3.25, "amount_yi": 385.8, "leading_stock": "阳光电源", "leading_change": 1.85},
+            {"name": "光伏", "change_pct": -0.25, "turnover": 2.85, "amount_yi": 425.6, "leading_stock": "隆基绿能", "leading_change": -0.85},
+            {"name": "医美", "change_pct": -0.85, "turnover": 3.15, "amount_yi": 185.2, "leading_stock": "爱美客", "leading_change": -1.52},
+            {"name": "网络游戏", "change_pct": -1.25, "turnover": 3.85, "amount_yi": 225.8, "leading_stock": "三七互娱", "leading_change": -2.15},
+            {"name": "CRO", "change_pct": -1.65, "turnover": 2.25, "amount_yi": 185.5, "leading_stock": "药明康德", "leading_change": -2.85},
+            {"name": "创新药", "change_pct": -2.15, "turnover": 3.55, "amount_yi": 225.2, "leading_stock": "恒瑞医药", "leading_change": -3.25},
+            {"name": "预制菜", "change_pct": -2.85, "turnover": 4.25, "amount_yi": 125.6, "leading_stock": "味知香", "leading_change": -4.15},
+        ]
+    
+    return mock_data[:limit]
 
 
 @handle_errors
@@ -248,7 +460,16 @@ def fetch_industry_ranking(board_type: str = "industry",
                            sort_by: str = "change_pct",
                            period: str = "today",
                            limit: int = 30) -> dict:
-    """获取行业/概念板块景气度排名核心逻辑。"""
+    """获取行业/概念板块景气度排名核心逻辑。
+
+    数据获取优先级（由 _fetch_board_data 统一调度）:
+      1. akshare API 链 (东方财富 → 同花顺 → 通用)
+      2. 东方财富 push2 HTTP 直连
+      3. 新浪财经 HTTP API
+      4. 过期缓存 / mock 兜底
+    """
+    import pandas as pd
+
     board_type = board_type.lower()
     sort_by = sort_by.lower()
     period = period.lower()
@@ -258,31 +479,72 @@ def fetch_industry_ranking(board_type: str = "industry",
         raise MCPToolError(ErrorCode.INVALID_PARAM,
                            f"不支持的板块类型: {board_type}，可选: industry / concept")
 
-    import akshare as ak
-    import pandas as pd
+    cache_key = _get_cache_key("industry_ranking", board_type, sort_by, period, limit)
+    cache = get_cache()
 
-    result = {"board_type": board_type, "period": period,
-              "sort_by": sort_by, "count": 0, "rankings": []}
+    # 尝试缓存（板块数据缓存3分钟）
+    if cache:
+        cached = cache.get(cache_key, 180)
+        if cached:
+            return cached
 
-    df = _fetch_board_data(ak, board_type)
+    result = {
+        "board_type": board_type,
+        "period": period,
+        "sort_by": sort_by,
+        "count": 0,
+        "rankings": [],
+        "data_source": None,
+    }
+
+    # _fetch_board_data 内部已包含 akshare + push2 + 新浪 三级 fallback
+    df = _fetch_board_data(board_type)
+
+    # 判断备源来源
+    data_source = "akshare"
+    if df is not None and hasattr(df, "attrs") and df.attrs.get("_fallback_source"):
+        data_source = df.attrs["_fallback_source"]
+
+    # 所有数据源都失败 → 过期缓存 → mock
     if df is None or df.empty:
-        result["message"] = "未获取到板块数据"
+        if cache:
+            expired = cache.get(cache_key, ttl_seconds=0)
+            if expired:
+                return {**expired, "warning": "数据源暂时不可用，使用过期缓存数据",
+                        "cache_mode": "extended_ttl"}
+
+        mock_rankings = _get_mock_industry_rankings(board_type, limit)
+        result["rankings"] = mock_rankings
+        result["count"] = len(mock_rankings)
+        result["data_source"] = "mock"
+        result["warning"] = "实时数据源暂时不可用，返回示例排名数据。请稍后重试。"
         return result
 
+    # --- 统一列名映射（兼容 akshare / push2 / 新浪） ---
     rename_map = {
-        "板块名称": "name", "涨跌幅": "change_pct", "换手率": "turnover",
-        "成交量": "volume", "成交额": "amount", "领涨股票": "leading_stock",
-        "领涨股票-涨跌幅": "leading_change", "总市值": "total_market_cap",
+        "板块名称": "name", "名称": "name",
+        "涨跌幅": "change_pct",
+        "换手率": "turnover",
+        "成交量": "volume", "成交额": "amount",
+        "领涨股票": "leading_stock",
+        "领涨股票-涨跌幅": "leading_change",
+        "总市值": "total_market_cap",
     }
     available_rename = {k: v for k, v in rename_map.items() if k in df.columns}
     df = df.rename(columns=available_rename)
+
+    if "name" not in df.columns:
+        for col in df.columns:
+            if "名称" in str(col) or "板块" in str(col):
+                df = df.rename(columns={col: "name"})
+                break
 
     for col in ["change_pct", "turnover", "volume", "amount"]:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
 
     if period != "today":
-        df = _apply_period_data(ak, df, board_type, period)
+        df = _apply_period_data(df, board_type, period)
 
     sort_col_map = {"change_pct": "change_pct", "turnover": "turnover",
                     "volume": "volume", "amount": "amount"}
@@ -295,8 +557,14 @@ def fetch_industry_ranking(board_type: str = "industry",
 
     rankings = []
     for _, row in df.iterrows():
+        name = row.get("name", "N/A")
+        if pd.isna(name) or name is None:
+            name = "N/A"
+        else:
+            name = str(name)
+
         item = {
-            "name": str(row.get("name", "N/A")),
+            "name": name,
             "change_pct": _safe_float(row.get("change_pct")),
             "turnover": _safe_float(row.get("turnover")),
             "amount_yi": _safe_float(
@@ -311,6 +579,11 @@ def fetch_industry_ranking(board_type: str = "industry",
         rankings.append(item)
 
     result["rankings"] = rankings
+    result["data_source"] = data_source
+
+    if cache:
+        cache.set(cache_key, result)
+
     return result
 
 
@@ -357,6 +630,7 @@ def register_tools(mcp):
         max_market_cap: float = 0,
         sort_by: str = "market_cap",
         limit: int = 20,
+        use_cache_only: bool = False,
     ) -> dict:
         """多条件股票筛选器 —— 按市盈率、ROE、市值、行业等维度快速选股。
 
@@ -378,12 +652,15 @@ def register_tools(mcp):
                 - "roe"         : 按 ROE 排序
                 - "change_pct"  : 按涨跌幅排序
             limit: 返回条数，最大 50，默认 20。
+            use_cache_only: 是否仅使用缓存数据，默认 False。设为 True 时
+                           强制使用本地缓存，不访问外部数据源。
 
         Returns:
             dict: 包含 filters（筛选条件）、count（命中数量）、stocks（股票列表）。
         """
         return fetch_screen_stocks(market, industry, min_pe, max_pe, min_roe,
-                                   min_market_cap, max_market_cap, sort_by, limit)
+                                   min_market_cap, max_market_cap, sort_by, limit,
+                                   use_cache_only)
 
     @mcp.tool
     def get_industry_ranking(
@@ -428,27 +705,31 @@ def _a_share_summary(ak, symbol: str, result: dict) -> dict:
 
     # 策略1: stock_financial_analysis_indicator (财务分析指标)
     try:
-        df = ak.stock_financial_analysis_indicator(symbol=symbol, start_year="2020")
+        df = call_akshare("stock_financial_analysis_indicator", symbol=symbol, 
+                         start_year="2020", max_retries=2)
         if df is not None and not df.empty:
             result["company"] = symbol
             result["data"] = _df_to_records(df, limit=8)
+            result["data_source"] = "akshare"
             return result
     except Exception:
         pass
 
     # 策略2: stock_financial_abstract_ths (同花顺财务摘要)
     try:
-        df = ak.stock_financial_abstract_ths(symbol=symbol, indicator="按报告期")
+        df = call_akshare("stock_financial_abstract_ths", symbol=symbol, 
+                         indicator="按报告期", max_retries=2)
         if df is not None and not df.empty:
             result["company"] = symbol
             result["data"] = _df_to_records(df, limit=8)
+            result["data_source"] = "akshare"
             return result
     except Exception:
         pass
 
     # 策略3: 实时行情 + 个股指标拼合
     try:
-        spot = ak.stock_zh_a_spot_em()
+        spot = call_akshare("stock_zh_a_spot_em", max_retries=2)
         row = spot[spot["代码"] == symbol]
         if not row.empty:
             row = row.iloc[0]
@@ -476,7 +757,7 @@ def _a_share_summary(ak, symbol: str, result: dict) -> dict:
 
     # 策略4: stock_individual_info_em (个股基本信息)
     try:
-        info_df = ak.stock_individual_info_em(symbol=symbol)
+        info_df = call_akshare("stock_individual_info_em", symbol=symbol, max_retries=2)
         if info_df is not None and not info_df.empty:
             info_dict = {}
             for _, r in info_df.iterrows():
@@ -492,6 +773,7 @@ def _a_share_summary(ak, symbol: str, result: dict) -> dict:
 
     if data_list:
         result["data"] = data_list
+        result["data_source"] = "akshare"
     else:
         result["message"] = f"未能获取 {symbol} 的财务数据，请确认代码正确"
     return result
@@ -517,13 +799,11 @@ def _a_share_statement(ak, symbol: str, result: dict, stmt_type: str) -> dict:
     func_names = fetch_funcs.get(stmt_type, [])
     for func_name in func_names:
         try:
-            func = getattr(ak, func_name, None)
-            if func is None:
-                continue
-            df = func(symbol=symbol)
+            df = call_akshare(func_name, symbol=symbol, max_retries=2)
             if df is not None and not df.empty:
                 result["company"] = symbol
                 result["data"] = _df_to_records(df, limit=8)
+                result["data_source"] = "akshare"
                 return result
         except Exception:
             continue
@@ -587,36 +867,51 @@ def _us_summary(ticker, info: dict) -> list:
 
 
 # ===========================================================================
-# 板块数据获取 (内部辅助)
+# 板块数据获取 (内部辅助) - 增强版，带多重fallback
 # ===========================================================================
 
-def _fetch_board_data(ak, board_type: str):
-    """获取行业或概念板块行情数据。"""
+def _fetch_board_data(board_type: str):
+    """获取行业或概念板块行情数据。带多重fallback机制。
+
+    优先级:
+      1. akshare API 链 (东方财富 → 同花顺 → 通用)
+      2. 东方财富 push2 HTTP 直连 (绕过 akshare)
+      3. 新浪财经 HTTP API
+    """
     if board_type == "industry":
-        funcs = [
-            "stock_board_industry_name_em",
-            "stock_board_industry_summary_ths",
+        api_list = [
+            ("stock_board_industry_name_em", {}),
+            ("stock_board_industry_summary_ths", {}),
+            ("stock_sector_detail", {"symbol": "行业板块"}),
         ]
     else:
-        funcs = [
-            "stock_board_concept_name_em",
-            "stock_board_concept_summary_ths",
+        api_list = [
+            ("stock_board_concept_name_em", {}),
+            ("stock_board_concept_summary_ths", {}),
+            ("stock_sector_detail", {"symbol": "概念板块"}),
         ]
 
-    for func_name in funcs:
+    # 第一轮: akshare API 链
+    for func_name, kwargs in api_list:
         try:
-            func = getattr(ak, func_name, None)
-            if func is None:
-                continue
-            df = func()
+            df = call_akshare(func_name, max_retries=2, **kwargs)
             if df is not None and not df.empty:
                 return df
         except Exception:
             continue
+
+    # 第二轮: 非 akshare 备源 (push2 直连 + 新浪)
+    try:
+        df = _fetch_board_fallback(board_type=board_type, limit=200)
+        if df is not None and not df.empty:
+            return df
+    except Exception:
+        pass
+
     return None
 
 
-def _apply_period_data(ak, df, board_type: str, period: str):
+def _apply_period_data(df, board_type: str, period: str):
     """为板块数据添加多周期涨跌幅（尽力而为）。"""
     import pandas as pd
 
@@ -627,25 +922,22 @@ def _apply_period_data(ak, df, board_type: str, period: str):
 
     # 尝试用板块历史行情计算区间涨跌幅
     period_changes = {}
-    sample_names = df["name"].head(60).tolist() if "name" in df.columns else []
+    sample_names = df["name"].head(20).tolist() if "name" in df.columns else []
+    
+    if not sample_names:
+        return df
 
     func_name = (
         "stock_board_industry_hist_em" if board_type == "industry"
         else "stock_board_concept_hist_em"
     )
-    hist_func = getattr(ak, func_name, None)
-    if hist_func is None:
-        return df
 
     for name in sample_names:
         try:
-            hist = hist_func(
-                symbol=name,
-                period="日k",
-                start_date=(datetime.now().replace(day=1)).strftime("%Y%m%d"),
-                end_date=datetime.now().strftime("%Y%m%d"),
-                adjust="",
-            )
+            hist = call_akshare(func_name, symbol=name, period="日k",
+                               start_date=(datetime.now().replace(day=1)).strftime("%Y%m%d"),
+                               end_date=datetime.now().strftime("%Y%m%d"),
+                               adjust="", max_retries=1)
             if hist is not None and len(hist) >= 2:
                 close_col = "收盘" if "收盘" in hist.columns else hist.columns[2]
                 closes = pd.to_numeric(hist[close_col], errors="coerce").dropna()
