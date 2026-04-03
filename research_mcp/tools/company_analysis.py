@@ -11,6 +11,10 @@ v2.0 更新：
 - 集成 data_source.py 的缓存和退避机制
 - 修复 screen_stocks 和 get_industry_ranking 的 Rate Limiting 问题
 - 增加行业板块数据 N/A 问题的容错处理
+
+v2.1 更新：
+- 集成 stock-open-api 东方财富/同花顺接口作为A股公司信息优先数据源
+- 公司信息优先级: stock-open-api(东方财富/同花顺) → akshare
 """
 
 import os
@@ -40,6 +44,9 @@ from utils.cache import TTL_DEFAULT
 
 # 导入备源 (push2 + 新浪)
 from utils.fallback_sources import fetch_board_fallback as _fetch_board_fallback
+
+# stock-open-api 数据源
+from utils.stock_open_api_source import fetch_company_info as _fetch_stock_open_api_company
 
 # ---------------------------------------------------------------------------
 # 内部工具函数
@@ -195,10 +202,39 @@ def fetch_company_financials(symbol: str, market: str = "A",
               "report_type": report_type, "data": []}
 
     if market == "A":
-        import akshare as ak
         if report_type == "summary":
+            # 优先使用 stock-open-api (东方财富/同花顺)
+            try:
+                soa_info = _fetch_stock_open_api_company(symbol)
+                if soa_info and soa_info.get("公司名称"):
+                    result["company"] = soa_info.get("A股简称", soa_info.get("公司名称", ""))
+                    result["data"] = [{
+                        "公司名称": soa_info.get("公司名称", ""),
+                        "A股代码": soa_info.get("A股代码", symbol),
+                        "A股简称": soa_info.get("A股简称", ""),
+                        "所属行业": soa_info.get("所属行业", ""),
+                        "总经理": soa_info.get("总经理", ""),
+                        "董事长": soa_info.get("董事长", ""),
+                        "注册资本(元)": soa_info.get("注册资本(元)", soa_info.get("注册资本", "")),
+                        "雇员人数": soa_info.get("雇员人数", soa_info.get("员工人数", "")),
+                        "成立日期": soa_info.get("成立日期", ""),
+                        "上市日期": soa_info.get("上市日期", ""),
+                        "办公地址": soa_info.get("办公地址", ""),
+                        "公司网址": soa_info.get("公司网址", ""),
+                        "经营范围": soa_info.get("经营范围", soa_info.get("主营业务", "")),
+                        "公司介绍": soa_info.get("公司介绍", soa_info.get("公司简介", "")),
+                    }]
+                    result["data_source"] = soa_info.get("data_source", "stock_open_api")
+                    return result
+            except Exception:
+                pass  # stock-open-api 失败，fallback 到 akshare
+
+            # Fallback: akshare
+            import akshare as ak
             return _a_share_summary(ak, symbol, result)
         else:
+            # 非summary报表(income/balance/cashflow)仍使用akshare
+            import akshare as ak
             return _a_share_statement(ak, symbol, result, report_type)
 
     elif market == "US":

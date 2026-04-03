@@ -10,6 +10,7 @@ pyarrow>=15.0.0,<18.0.0
 # ── 金融数据源 ──
 yfinance>=0.2.0,<2.0.0
 akshare>=1.10.0,<2.0.0
+stock-open-api>=1.0.6          # 东方财富/同花顺/雪球 A股数据接口 (github.com/mouday/stock-open-api)
 # tushare>=1.4.0              # 可选, 需注册Token
 # fredapi>=0.5.0              # 可选, 需FRED API Key
 
