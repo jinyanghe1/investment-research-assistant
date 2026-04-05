@@ -119,17 +119,19 @@
             padding: 0 2rem;
         }
         .toc-box {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid var(--border-light);
+            border-radius: 10px;
             padding: 1.25rem 1.75rem;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
         }
         .toc-box h3 {
             font-size: 0.9rem;
-            color: var(--text-secondary);
+            color: var(--text-primary);
             text-transform: uppercase;
             letter-spacing: 0.05em;
             margin-bottom: 0.75rem;
+            font-weight: 600;
         }
         .toc-box ul {
             list-style: none;
@@ -137,15 +139,50 @@
             column-gap: 2rem;
         }
         .toc-box li {
-            padding: 0.3rem 0;
-            border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+            padding: 0.35rem 0;
+            border-bottom: 1px solid rgba(71, 85, 105, 0.4);
+        }
+        .toc-box li:last-child {
+            border-bottom: none;
         }
         .toc-box a {
-            color: var(--accent-blue);
+            color: var(--accent-cyan);
             text-decoration: none;
             font-size: 0.9rem;
+            transition: color 0.2s;
         }
-        .toc-box a:hover { color: var(--accent-cyan); text-decoration: underline; }
+        .toc-box a:hover { color: #67e8f9; text-decoration: underline; }
+
+        /* ── 正文区域的普通表格（Markdown 转换生成）── */
+        .report-body table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.25rem 0;
+            font-size: 0.88rem;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+        .report-body thead th {
+            background: var(--bg-table-header);
+            color: var(--accent-cyan);
+            font-weight: 600;
+            padding: 0.65rem 1rem;
+            text-align: left;
+            border-bottom: 2px solid var(--border-light);
+            white-space: nowrap;
+        }
+        .report-body tbody td {
+            padding: 0.55rem 1rem;
+            border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+            color: var(--text-primary);
+        }
+        .report-body tbody tr:nth-child(even) {
+            background: var(--bg-table-even);
+        }
+        .report-body tbody tr:hover {
+            background: var(--bg-highlight);
+        }
 
         /* ── 正文区域 ──────────────────────────────── */
         .report-body {

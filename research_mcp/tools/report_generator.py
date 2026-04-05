@@ -71,20 +71,21 @@ DEFAULT_TEMPLATE = r"""<!DOCTYPE html>
     width: 240px; min-width: 200px; padding: 28px 16px;
     border-right: 1px solid #1f3461; position: sticky;
     top: 52px; height: calc(100vh - 52px); overflow-y: auto;
-    background: #0f1729;
+    background: #0d1424;
   }
   .toc-sidebar h4 {
-    color: #58a6ff; font-size: 0.85rem; margin-bottom: 12px;
+    color: #79c0ff; font-size: 0.85rem; margin-bottom: 12px;
     text-transform: uppercase; letter-spacing: 1px;
+    font-weight: 600;
   }
   .toc-sidebar ul { list-style: none; }
   .toc-sidebar li { margin-bottom: 6px; }
   .toc-sidebar a {
-    color: #8b949e; text-decoration: none; font-size: 0.82rem;
+    color: #c9d1d9; text-decoration: none; font-size: 0.82rem;
     display: block; padding: 3px 8px; border-radius: 4px;
     transition: all 0.2s;
   }
-  .toc-sidebar a:hover { color: #58a6ff; background: rgba(88,166,255,0.08); }
+  .toc-sidebar a:hover { color: #79c0ff; background: rgba(88,166,255,0.1); }
   .toc-sidebar .toc-h3 { padding-left: 20px; font-size: 0.78rem; }
 
   /* ── Main Content ─────────────────────────────────── */
@@ -143,18 +144,21 @@ DEFAULT_TEMPLATE = r"""<!DOCTYPE html>
   /* ── Table ────────────────────────────────────────── */
   .report-body table {
     width: 100%; border-collapse: collapse; margin: 18px 0;
-    font-size: 0.9rem;
+    font-size: 0.9rem; border: 1px solid #1f3461;
+    border-radius: 8px; overflow: hidden;
   }
   .report-body thead th {
-    background: #161b22; color: #e6edf3; font-weight: 600;
+    background: linear-gradient(180deg, #1a2744 0%, #0d1b3e 100%);
+    color: #79c0ff; font-weight: 600;
     padding: 10px 14px; text-align: left;
-    border-bottom: 2px solid #30363d;
+    border-bottom: 2px solid #1f3461;
   }
   .report-body tbody td {
     padding: 8px 14px; border-bottom: 1px solid #21262d;
+    color: #c9d1d9;
   }
-  .report-body tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
-  .report-body tbody tr:hover { background: rgba(88,166,255,0.05); }
+  .report-body tbody tr:nth-child(even) { background: rgba(88, 166, 255, 0.03); }
+  .report-body tbody tr:hover { background: rgba(88, 166, 255, 0.08); }
 
   /* ── Code Block ───────────────────────────────────── */
   .report-body pre {
@@ -181,6 +185,192 @@ DEFAULT_TEMPLATE = r"""<!DOCTYPE html>
     background: #0d1117; border-top: 1px solid #1f3461;
     padding: 24px 48px; font-size: 0.75rem; color: #484f58;
     text-align: center; line-height: 1.6;
+  }
+
+  /* ── Chart Placeholder ───────────────────────────── */
+  .chart-placeholder {
+    background: linear-gradient(135deg, #0d1b3e 0%, #162447 100%);
+    border: 2px dashed #1f3461;
+    border-radius: 8px;
+    padding: 40px 20px;
+    margin: 20px 0;
+    text-align: center;
+    color: #58a6ff;
+    font-size: 0.9rem;
+  }
+  .chart-placeholder .icon {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+    opacity: 0.7;
+  }
+  .chart-placeholder .hint {
+    color: #8b949e;
+    font-size: 0.8rem;
+    margin-top: 8px;
+  }
+
+  /* ── Risk Section ─────────────────────────────────── */
+  .risk-section {
+    background: rgba(239, 68, 68, 0.05);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 8px;
+    padding: 20px;
+    margin: 24px 0;
+  }
+  .risk-section h3 {
+    color: #ef4444;
+    margin-top: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .risk-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(239, 68, 68, 0.1);
+  }
+  .risk-item:last-child { border-bottom: none; }
+  .risk-item .level {
+    flex-shrink: 0;
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .risk-item .level.high { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+  .risk-item .level.medium { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+  .risk-item .level.low { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+  .risk-item .desc { flex: 1; color: #c9d1d9; font-size: 0.9rem; }
+
+  /* ── Peer Comparison Table ────────────────────────── */
+  .peer-comparison-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 18px 0;
+    font-size: 0.88rem;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #1f3461;
+  }
+  .peer-comparison-table thead th {
+    background: linear-gradient(180deg, #1a2744 0%, #0d1b3e 100%);
+    color: #58a6ff;
+    font-weight: 600;
+    padding: 12px 14px;
+    text-align: center;
+    border-bottom: 2px solid #1f3461;
+  }
+  .peer-comparison-table thead th:first-child {
+    text-align: left;
+    background: linear-gradient(180deg, #162447 0%, #0d1b3e 100%);
+  }
+  .peer-comparison-table tbody td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #21262d;
+    text-align: center;
+  }
+  .peer-comparison-table tbody td:first-child {
+    text-align: left;
+    font-weight: 500;
+    color: #e6edf3;
+    background: rgba(13, 27, 62, 0.3);
+  }
+  .peer-comparison-table tbody tr:nth-child(even) { background: rgba(88, 166, 255, 0.03); }
+  .peer-comparison-table tbody tr:hover { background: rgba(88, 166, 255, 0.08); }
+  .peer-comparison-table .highlight { color: #58a6ff; font-weight: 600; }
+  .peer-comparison-table .positive { color: #22c55e; }
+  .peer-comparison-table .negative { color: #ef4444; }
+
+  /* ── Analyst Info Bar ─────────────────────────────── */
+  .analyst-bar {
+    background: rgba(88, 166, 255, 0.05);
+    border: 1px solid rgba(88, 166, 255, 0.15);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 20px 0;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .analyst-bar .avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #58a6ff 0%, #3b82f6 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+  }
+  .analyst-bar .info { flex: 1; min-width: 200px; }
+  .analyst-bar .name {
+    color: #e6edf3;
+    font-weight: 600;
+    font-size: 1rem;
+  }
+  .analyst-bar .title {
+    color: #8b949e;
+    font-size: 0.8rem;
+    margin-top: 2px;
+  }
+  .analyst-bar .credentials {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .analyst-bar .credential {
+    background: rgba(88, 166, 255, 0.1);
+    color: #58a6ff;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+  }
+
+  /* ── Enhanced Footer Disclaimer ───────────────────── */
+  .footer-enhanced {
+    background: linear-gradient(180deg, #0d1117 0%, #0b1120 100%);
+    border-top: 2px solid #1f3461;
+    padding: 32px 48px;
+    margin-top: 40px;
+  }
+  .footer-enhanced .disclaimer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .footer-enhanced .disclaimer-box {
+    background: rgba(13, 17, 23, 0.8);
+    border: 1px solid #21262d;
+    border-radius: 6px;
+    padding: 16px;
+  }
+  .footer-enhanced .disclaimer-box h4 {
+    color: #f59e0b;
+    font-size: 0.8rem;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .footer-enhanced .disclaimer-box p {
+    color: #484f58;
+    font-size: 0.75rem;
+    line-height: 1.7;
+  }
+  .footer-enhanced .copyright {
+    text-align: center;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #21262d;
+    color: #484f58;
+    font-size: 0.75rem;
   }
 
   /* ── Responsive ───────────────────────────────────── */
@@ -234,12 +424,25 @@ DEFAULT_TEMPLATE = r"""<!DOCTYPE html>
   </main>
 </div>
 
-<!-- Disclaimer -->
-<footer class="footer-disclaimer">
-  <p><strong>免责声明：</strong>本研报由投研AI助手自动生成，仅供内部参考，不构成任何投资建议。
-  报告中的数据、观点和结论可能存在偏差，使用者应自行核实并独立判断。
-  据此操作所产生的风险由使用者自行承担。</p>
-  <p style="margin-top:8px;">© {{YEAR}} 投研助手 · 研报知识库</p>
+<!-- Enhanced Footer with Disclaimer -->
+<footer class="footer-enhanced">
+  <div class="disclaimer-grid">
+    <div class="disclaimer-box">
+      <h4>⚠️ 风险提示</h4>
+      <p>本研报由投研AI助手自动生成，仅供内部参考，不构成任何投资建议。市场有风险，投资需谨慎。</p>
+    </div>
+    <div class="disclaimer-box">
+      <h4>📋 数据声明</h4>
+      <p>报告中的数据、观点和结论可能存在偏差或延迟，使用者应自行核实数据源并独立判断。</p>
+    </div>
+    <div class="disclaimer-box">
+      <h4>⚖️ 责任限制</h4>
+      <p>据此操作所产生的风险由使用者自行承担。作者及平台不对因使用本报告而产生的任何损失负责。</p>
+    </div>
+  </div>
+  <div class="copyright">
+    <p>© {{YEAR}} 投研助手 · AI投研中枢 · 内部研究资料 · 禁止外传</p>
+  </div>
 </footer>
 
 </body>
@@ -401,7 +604,7 @@ def _parse_table(table_lines: list[str]) -> str:
         else:
             aligns.append("left")
 
-    html = '<table>\n<thead><tr>'
+    html = '<table class="report-table">\n<thead><tr>'
     for idx, h in enumerate(headers):
         align = aligns[idx] if idx < len(aligns) else "left"
         html += f'<th style="text-align:{align}">{h}</th>'
