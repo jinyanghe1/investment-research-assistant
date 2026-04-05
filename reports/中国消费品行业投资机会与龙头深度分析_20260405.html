@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中国消费品行业投资机会与龙头深度分析 - 投研助手</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg-primary: #0a0f1e;
+            --bg-secondary: #131b2e;
+            --bg-card: #162033;
+            --bg-table-header: #1c2a45;
+            --bg-table-even: #131b2e;
+            --bg-table-odd: #182237;
+            --bg-highlight: #1a2d4a;
+            --text-primary: #e8ecf4;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #22d3ee;
+            --accent-green: #22c55e;
+            --accent-red: #ef4444;
+            --accent-amber: #f59e0b;
+            --accent-purple: #a78bfa;
+            --border-color: #1e3050;
+            --border-light: #2a3f5f;
+            --toc-bg: #0e1628;
+            --toc-border: #243352;
+            --toc-link: #60a5fa;
+            --toc-link-hover: #93c5fd;
+            --toc-title: #94a3b8;
+            --table-header-bg: #1a2a42;
+            --table-header-text: #7dd3fc;
+            --table-border: #2a3f5f;
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            --font-mono: "SF Mono", "Fira Code", Menlo, monospace;
+        }
+        html { font-size: 16px; scroll-behavior: smooth; }
+        body { font-family: var(--font-sans); background: var(--bg-primary); color: var(--text-primary); line-height: 1.8; min-height: 100vh; }
+        .top-nav { position: sticky; top: 0; z-index: 100; background: rgba(10, 15, 30, 0.95); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border-color); padding: 0 2rem; }
+        .top-nav-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 56px; }
+        .nav-brand { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; color: var(--text-primary); font-weight: 700; font-size: 1rem; }
+        .nav-brand:hover { color: var(--accent-cyan); }
+        .nav-meta { display: flex; align-items: center; gap: 1.5rem; font-size: 0.85rem; color: var(--text-secondary); }
+        .nav-tag { display: inline-block; padding: 2px 10px; border-radius: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); font-size: 0.75rem; color: var(--accent-cyan); }
+        .report-header { max-width: 1100px; margin: 0 auto; padding: 3rem 2rem 2rem; border-bottom: 1px solid var(--border-color); }
+        .report-header h1 { font-size: 2rem; font-weight: 800; line-height: 1.3; margin-bottom: 1rem; background: linear-gradient(135deg, var(--text-primary), var(--accent-cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .header-meta { display: flex; flex-wrap: wrap; gap: 1.5rem; font-size: 0.9rem; color: var(--text-secondary); }
+        .header-meta span { display: flex; align-items: center; gap: 0.35rem; }
+        /* TOC - FIXED: better contrast */
+        .toc-section { max-width: 1100px; margin: 2rem auto; padding: 0 2rem; }
+        .toc-box { background: var(--toc-bg); border: 1px solid var(--toc-border); border-radius: 10px; padding: 1.5rem 2rem; }
+        .toc-box h3 { font-size: 0.85rem; color: var(--toc-title); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1rem; font-weight: 600; }
+        .toc-box ul { list-style: none; columns: 2; column-gap: 2.5rem; }
+        .toc-box li { padding: 0.4rem 0; border-bottom: 1px solid rgba(36, 51, 82, 0.6); }
+        .toc-box a { color: var(--toc-link); text-decoration: none; font-size: 0.92rem; font-weight: 500; }
+        .toc-box a:hover { color: var(--toc-link-hover); text-decoration: underline; }
+        .report-body { max-width: 1100px; margin: 0 auto; padding: 2rem; }
+        .report-body h2 { font-size: 1.5rem; margin: 3rem 0 1.2rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--accent-blue); color: var(--text-primary); }
+        .report-body h3 { font-size: 1.2rem; margin: 2rem 0 0.8rem; color: var(--accent-cyan); }
+        .report-body h4 { font-size: 1rem; margin: 1.5rem 0 0.5rem; color: var(--text-secondary); }
+        .report-body p { margin-bottom: 1rem; color: var(--text-primary); text-align: justify; }
+        .report-body a { color: var(--accent-blue); text-decoration: none; }
+        .report-body a:hover { text-decoration: underline; }
+        .report-body ul, .report-body ol { margin: 0.75rem 0 1rem 1.5rem; color: var(--text-primary); }
+        .report-body li { margin-bottom: 0.4rem; }
+        .report-body strong { color: var(--accent-amber); font-weight: 700; }
+        .report-body em { color: var(--text-secondary); font-style: italic; }
+        .callout { margin: 1.25rem 0; padding: 1rem 1.25rem; border-left: 4px solid var(--accent-blue); background: var(--bg-highlight); border-radius: 0 8px 8px 0; color: var(--text-primary); }
+        .callout.warning { border-left-color: var(--accent-amber); background: rgba(245, 158, 11, 0.08); }
+        .callout.danger { border-left-color: var(--accent-red); background: rgba(239, 68, 68, 0.08); }
+        .callout.success { border-left-color: var(--accent-green); background: rgba(34, 197, 94, 0.08); }
+        .callout.info { border-left-color: var(--accent-cyan); background: rgba(34, 211, 238, 0.06); }
+        /* Data cards */
+        .data-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+        .data-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 1.25rem; text-align: center; }
+        .data-card .label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+        .data-card .value { font-size: 1.75rem; font-weight: 800; color: var(--text-primary); font-family: var(--font-mono); }
+        .data-card .change { font-size: 0.9rem; margin-top: 0.35rem; font-weight: 600; }
+        .data-card .change.up { color: var(--accent-red); }
+        .data-card .change.down { color: var(--accent-green); }
+        /* FIXED TABLES */
+        .table-wrapper { margin: 1.5rem 0; border-radius: 8px; overflow: hidden; border: 1px solid var(--table-border); }
+        .table-title { background: var(--table-header-bg); padding: 0.75rem 1rem; font-size: 0.95rem; font-weight: 600; color: var(--text-primary); border-bottom: 1px solid var(--table-border); }
+        table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+        thead th { background: var(--table-header-bg); color: var(--table-header-text); font-weight: 600; text-align: left; padding: 0.7rem 1rem; border-bottom: 2px solid var(--border-light); white-space: nowrap; }
+        tbody td { padding: 0.65rem 1rem; border-bottom: 1px solid rgba(42, 63, 95, 0.5); color: var(--text-primary); }
+        tbody tr:nth-child(even) { background: var(--bg-table-even); }
+        tbody tr:nth-child(odd) { background: var(--bg-table-odd); }
+        tbody tr:hover { background: var(--bg-highlight); }
+        .up { color: var(--accent-red); font-weight: 600; }
+        .down { color: var(--accent-green); font-weight: 600; }
+        .tag { display: inline-block; background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); font-size: 0.75rem; padding: 2px 10px; border-radius: 12px; margin-right: 4px; margin-bottom: 4px; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .tag.green { background: rgba(34, 197, 94, 0.12); color: var(--accent-green); border-color: rgba(34, 197, 94, 0.3); }
+        .tag.red { background: rgba(239, 68, 68, 0.12); color: var(--accent-red); border-color: rgba(239, 68, 68, 0.3); }
+        .tag.amber { background: rgba(245, 158, 11, 0.12); color: var(--accent-amber); border-color: rgba(245, 158, 11, 0.3); }
+        .source { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; font-style: italic; }
+        .chapter-divider { border: none; height: 1px; background: linear-gradient(90deg, transparent, var(--border-light), transparent); margin: 3rem 0; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem; margin: 1rem 0; }
+        .kpi-item { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 0.75rem 1rem; text-align: center; }
+        .kpi-item .kpi-label { font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.25rem; }
+        .kpi-item .kpi-val { font-size: 1.1rem; font-weight: 700; color: var(--accent-cyan); font-family: var(--font-mono); }
+        .chart-container { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 1.25rem; margin: 1.5rem 0; }
+        .chart-container .chart-title { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-bottom: 1rem; }
+        .chart-container svg { width: 100%; }
+        .footer { text-align: center; font-size: 0.8rem; color: var(--text-muted); padding: 3rem 0 2rem; border-top: 1px solid var(--border-color); max-width: 1100px; margin: 2rem auto 0; }
+        @media (max-width: 768px) { .toc-box ul { columns: 1; } .data-cards { grid-template-columns: repeat(2, 1fr); } .kpi-grid { grid-template-columns: repeat(2, 1fr); } .report-body { padding: 1rem; } }
+    </style>
+</head>
+<body>
+    <nav class="top-nav">
+        <div class="top-nav-inner">
+            <a href="../index.html" class="nav-brand">📊 投研助手</a>
+            <div class="nav-meta">
+                <span class="nav-tag">产业研究</span>
+                <span class="nav-tag">消费品</span>
+                <span>2026-04-05</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="report-header">
+        <h1>中国消费品行业投资机会与龙头深度分析</h1>
+        <div class="header-meta">
+            <span>📅 2026年4月5日</span>
+            <span>👤 投研AI团队</span>
+            <span>⏱️ 预计阅读 25 分钟</span>
+            <span>📄 10 章 · 约 15,000 字</span>
+        </div>
+    </div>
+
+    <div class="toc-section">
+        <div class="toc-box">
+            <h3>📑 目录</h3>
+            <ul>
+                <li><a href="#ch1">第一章　宏观环境与消费趋势总览</a></li>
+                <li><a href="#ch2">第二章　白酒行业深度分析</a></li>
+                <li><a href="#ch3">第三章　乳制品行业深度分析</a></li>
+                <li><a href="#ch4">第四章　调味品行业深度分析</a></li>
+                <li><a href="#ch5">第五章　休闲食品行业分析</a></li>
+                <li><a href="#ch6">第六章　家电行业深度分析</a></li>
+                <li><a href="#ch7">第七章　消费电子行业分析</a></li>
+                <li><a href="#ch8">第八章　美妆个护与服装行业分析</a></li>
+                <li><a href="#ch9">第九章　电商零售与新消费品牌</a></li>
+                <li><a href="#ch10">第十章　财务对比、估值与投资策略</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="report-body">
+
+        <!-- 第一章 -->
+        <h2 id="ch1">第一章　宏观环境与消费趋势总览</h2>
+
+        <h3>1.1 2025-2026 年消费市场全景</h3>
+
+        <div class="data-cards">
+            <div class="data-card">
+                <div class="label">2025年社零总额</div>
+                <div class="value">50.09万亿</div>
+                <div class="change up">+3.5%</div>
+            </div>
+            <div class="data-card">
+                <div class="label">2026年1-2月社零增速</div>
+                <div class="value">+2.8%</div>
+                <div class="change down">偏弱</div>
+            </div>
+            <div class="data-card">
+                <div class="label">网上零售增速</div>
+                <div class="value">+10.3%</div>
+                <div class="change up">线上韧性</div>
+            </div>
+            <div class="data-card">
+                <div class="label">消费对GDP贡献率</div>
+                <div class="value">52.0%</div>
+                <div class="change up">首要动力</div>
+            </div>
+            <div class="data-card">
+                <div class="label">核心CPI（2月）</div>
+                <div class="value">+1.8%</div>
+                <div class="change">结构性分化</div>
+            </div>
+        </div>
+        <p class="source">数据来源：国家统计局、商务部（2026年1月新闻发布会）、国发院2026Q1报告</p>
+
+        <p>2025年中国社会消费品零售总额首次突破50万亿元大关，同比增长约3.5%，消费对GDP增长的贡献率升至52.0%，成为经济增长的第一大引擎。但进入2026年，消费复苏动能明显减弱：1-2月社零同比仅增长2.8%，处于偏弱水平。其中商品零售增2.5%，餐饮收入增4.8%，服务零售额增5.6%，网上商品零售增10.3%。线上渠道延续较快增长态势，而线下实体零售面临较大压力。</p>
+
+        <p>CPI方面，2026年2月同比上涨1.3%，核心CPI同比上涨1.8%，但这一回升主要由黄金饰品价格大涨15.4%驱动，属于结构性因素而非需求全面回暖。百城平均租金同比下降6.2%-10.5%，但CPI居住分项仅微降0.4%，反映官方统计对市场租金变动反应不足。<a href="https://www.stats.gov.cn/sj/" target="_blank">[1]</a><a href="https://www.mofcom.gov.cn/syxwfb/art/2026/art_3f53a9661f75443591886cf1abac52ed.html" target="_blank">[2]</a></p>
+
+        <div class="chart-container">
+            <div class="chart-title">图1.1 中国社会消费品零售总额及增速（2020-2025）</div>
+            <svg viewBox="0 0 800 280" xmlns="http://www.w3.org/2000/svg">
+                <defs><linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#1d4ed8"/></linearGradient></defs>
+                <line x1="80" y1="240" x2="780" y2="240" stroke="#2a3f5f" stroke-width="1"/>
+                <line x1="80" y1="180" x2="780" y2="180" stroke="#1e3050" stroke-width="0.5" stroke-dasharray="4"/>
+                <line x1="80" y1="120" x2="780" y2="120" stroke="#1e3050" stroke-width="0.5" stroke-dasharray="4"/>
+                <line x1="80" y1="60" x2="780" y2="60" stroke="#1e3050" stroke-width="0.5" stroke-dasharray="4"/>
+                <text x="75" y="244" fill="#64748b" font-size="11" text-anchor="end">35</text>
+                <text x="75" y="184" fill="#64748b" font-size="11" text-anchor="end">40</text>
+                <text x="75" y="124" fill="#64748b" font-size="11" text-anchor="end">45</text>
+                <text x="75" y="64" fill="#64748b" font-size="11" text-anchor="end">50</text>
+                <text x="75" y="20" fill="#94a3b8" font-size="10" text-anchor="end">（万亿元）</text>
+                <rect x="120" y="220" width="60" height="20" rx="3" fill="url(#barGrad)" opacity="0.8"/>
+                <text x="150" y="236" fill="#94a3b8" font-size="10" text-anchor="middle">39.2</text>
+                <rect x="230" y="200" width="60" height="40" rx="3" fill="url(#barGrad)" opacity="0.8"/>
+                <text x="260" y="216" fill="#94a3b8" font-size="10" text-anchor="middle">44.0</text>
+                <rect x="340" y="180" width="60" height="60" rx="3" fill="url(#barGrad)" opacity="0.8"/>
+                <text x="370" y="196" fill="#94a3b8" font-size="10" text-anchor="middle">48.0</text>
+                <rect x="450" y="160" width="60" height="80" rx="3" fill="url(#barGrad)" opacity="0.85"/>
+                <text x="480" y="176" fill="#94a3b8" font-size="10" text-anchor="middle">47.1</text>
+                <rect x="560" y="140" width="60" height="100" rx="3" fill="url(#barGrad)" opacity="0.85"/>
+                <text x="590" y="156" fill="#94a3b8" font-size="10" text-anchor="middle">48.8</text>
+                <rect x="670" y="100" width="60" height="140" rx="3" fill="url(#barGrad)"/>
+                <text x="700" y="116" fill="#e8ecf4" font-size="11" text-anchor="middle" font-weight="700">50.1</text>
+                <text x="150" y="262" fill="#94a3b8" font-size="11" text-anchor="middle">2020</text>
+                <text x="260" y="262" fill="#94a3b8" font-size="11" text-anchor="middle">2021</text>
+                <text x="370" y="262" fill="#94a3b8" font-size="11" text-anchor="middle">2022</text>
+                <text x="480" y="262" fill="#94a3b8" font-size="11" text-anchor="middle">2023</text>
+                <text x="590" y="262" fill="#94a3b8" font-size="11" text-anchor="middle">2024</text>
+                <text x="700" y="262" fill="#e8ecf4" font-size="11" text-anchor="middle" font-weight="600">2025</text>
+                <polyline points="150,210 260,190 370,170 480,150 590,130 700,90" fill="none" stroke="#22d3ee" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="150" cy="210" r="3.5" fill="#22d3ee"/><circle cx="260" cy="190" r="3.5" fill="#22d3ee"/>
+                <circle cx="370" cy="170" r="3.5" fill="#22d3ee"/><circle cx="480" cy="150" r="3.5" fill="#22d3ee"/>
+                <circle cx="590" cy="130" r="3.5" fill="#22d3ee"/><circle cx="700" cy="90" r="4" fill="#22d3ee" stroke="#0a0f1e" stroke-width="2"/>
+                <text x="708" y="88" fill="#22d3ee" font-size="11" font-weight="600">+3.5%</text>
+            </svg>
+        </div>
+
+        <h3>1.2 政策环境：以旧换新持续加码</h3>
+        <p>2026年"以旧换新"政策进入第二阶段，力度显著加码。国家发改委、财政部于2025年12月发布2026年实施方案，财政部追加2500亿元超长期特别国债用于支持。2026年一季度，消费品以旧换新带动相关商品销售额超<strong>4331.7亿元</strong>，惠及<strong>6093.3万人次</strong>。4月3日商务部召开全国推进电视电话会议，部署下一步扩消费重点工作。<a href="https://news.cctv.com/2026/04/04/ARTIAjQUsaZp0QjJOQFP6mcK260404.shtml" target="_blank">[3]</a><a href="https://www.ndrc.gov.cn/xxgk/zcfb/tz/202512/t20251230_1402851.html" target="_blank">[4]</a></p>
+
+        <div class="table-wrapper">
+            <div class="table-title">表1.1 2026年Q1以旧换新政策成效</div>
+            <table>
+                <thead><tr><th>品类</th><th>销售额（亿元）</th><th>同比增长</th><th>惠及人次（万）</th></tr></thead>
+                <tbody>
+                    <tr><td>汽车</td><td>约1800</td><td class="up">显著增长</td><td>约1500</td></tr>
+                    <tr><td>家电</td><td>约1200</td><td class="up">+20%+</td><td>约2000</td></tr>
+                    <tr><td>手机等数码</td><td>约800</td><td class="up">+35%+</td><td>约1800</td></tr>
+                    <tr><td>家居家装</td><td>约530</td><td class="up">稳步增长</td><td>约800</td></tr>
+                    <tr><td><strong>合计</strong></td><td><strong>4331.7</strong></td><td>—</td><td><strong>6093.3</strong></td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="callout info">
+            <strong>宏观核心判断：</strong>消费复苏基础不牢，不宜过早乐观解读CPI回暖。核心CPI回升主要受黄金价格超常上涨驱动，并非需求全面回暖。预防性储蓄率高达62.9%，居民"不敢消费、不愿消费"特征仍然明显。线上渠道（+10.3%）是亮点，服务消费（餐饮+4.8%、服务+5.6%）好于商品消费。财政赤字率连续两年维持4%，消费刺激政策仍有加力空间。
+        </div>
+
+        <hr class="chapter-divider">
+
+        <!-- 第二章 -->
+        <h2 id="ch2">第二章　白酒行业深度分析</h2>
+
+        <h3>2.1 行业基本面：量缩价升的存量博弈</h3>
+        <p>中国白酒行业已进入"量缩价升、集中度提升"的成熟期。规模以上白酒企业产量持续下滑，2025年降至约350万千升，但规上企业收入保持中低个位数增长，价增贡献显著超过量增。行业正从渠道扩张驱动转向品牌价值驱动。</p>
+
+        <p>从价格带来看：高端白酒（800元以上）稳健增长，商务消费与礼品需求刚性；次高端（300-800元）分化加剧，区域名酒全国化进度不一；中低端（300元以下）持续出清，市场份额向头部集中。</p>
+
+        <div class="chart-container">
+            <div class="chart-title">图2.1 五大白酒龙头2024年营收对比</div>
+            <svg viewBox="0 0 800 220" xmlns="http://www.w3.org/2000/svg">
+                <defs><linearGradient id="bGrad1" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#ef4444"/><stop offset="100%" stop-color="#dc2626"/></linearGradient><linearGradient id="bGrad2" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#f97316"/><stop offset="100%" stop-color="#ea580c"/></linearGradient><linearGradient id="bGrad3" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#d97706"/></linearGradient><linearGradient id="bGrad4" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#2563eb"/></linearGradient><linearGradient id="bGrad5" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#22d3ee"/><stop offset="100%" stop-color="#0891b2"/></linearGradient></defs>
+                <text x="400" y="20" fill="#94a3b8" font-size="11" text-anchor="middle">营收（亿元）</text>
+                <rect x="50" y="50" width="550" height="32" rx="4" fill="url(#bGrad1)"/><text x="305" y="72" fill="#fff" font-size="13" text-anchor="end" font-weight="700">贵州茅台 1,709</text>
+                <rect x="100" y="95" width="440" height="32" rx="4" fill="url(#bGrad2)"/><text x="545" y="117" fill="#fff" font-size="13" text-anchor="end" font-weight="700">五粮液 832</text>
+                <rect x="180" y="140" width="310" height="32" rx="4" fill="url(#bGrad3)"/><text x="495" y="162" fill="#fff" font-size="13" text-anchor="end" font-weight="700">山西汾酒 313</text>
+                <rect x="250" y="185" width="280" height="32" rx="4" fill="url(#bGrad4)"/><text x="535" y="207" fill="#fff" font-size="13" text-anchor="end" font-weight="700">泸州老窖 285</text>
+                <rect x="300" y="185" width="220" height="32" rx="4" fill="url(#bGrad5)" transform="translate(0,45)"/><text x="525" y="252" fill="#fff" font-size="13" text-anchor="end" font-weight="700">洋河股份 222</text>
+            </svg>
+        </div>
+        <p class="source">数据来源：各公司2024年年度报告、雪球网</p>
+
+        <h3>2.2 龙头公司分析</h3>
+
+        <div class="table-wrapper">
+            <div class="table-title">表2.1 白酒龙头核心经营指标（2024年/2025年前三季度）</div>
+            <table>
+                <thead>
+                    <tr><th>公司</th><th>2024营收(亿)</th><th>同比</th><th>2024净利(亿)</th><th>同比</th><th>毛利率</th><th>净利率</th><th>ROE</th><th>PE(TTM)</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><strong>贵州茅台</strong></td><td>1,709</td><td class="up">+15.7%</td><td>862</td><td class="up">+15.4%</td><td>91.5%</td><td>50.5%</td><td>~35%</td><td>~22x</td></tr>
+                    <tr><td><strong>五粮液</strong></td><td>832</td><td class="up">+7.4%</td><td>311</td><td class="up">+9.0%</td><td>75.5%</td><td>37.4%</td><td>~25%</td><td>~17x</td></tr>
+                    <tr><td><strong>山西汾酒</strong></td><td>313</td><td class="up">+20.4%</td><td>104</td><td class="up">+25.2%</td><td>76.2%</td><td>33.3%</td><td>~32%</td><td>~22x</td></tr>
+                    <tr><td><strong>泸州老窖</strong></td><td>285</td><td class="up">+18.9%</td><td>102</td><td class="up">+22.0%</td><td>86.2%</td><td>35.8%</td><td>~30%</td><td>~15x</td></tr>
+                    <tr><td><strong>洋河股份</strong></td><td>222</td><td class="up">+1.5%</td><td>74</td><td class="up">+1.2%</td><td>74.5%</td><td>33.3%</td><td>~20%</td><td>~14x</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="source">数据来源：各公司2024年年报、2025年三季报、东方财富网。PE为2026年4月近似值。</p>
+
+        <p>贵州茅台2025年前三季度实现营业总收入1309.04亿元，同比增长6.32%；归母净利润646.26亿元，同比增长6.25%。增速较2024年有所放缓，但在高端白酒中仍保持最强的确定性。茅台直销渠道占比持续提升至45%以上，i茅台数字化运营成效显著。五粮液经典五粮液放量推进渠道改革，但与茅台的价差仍较大。</p>
+
+        <div class="callout success">
+            <strong>白酒行业核心结论：</strong>高端白酒（茅台）确定性最强，是消费赛道中少有的"量缩价升"品种。泸州老窖PE仅15x估值最低，具备性价比。山西汾酒全国化扩张速度最快（省外收入占比突破55%），弹性最大。行业风险在于渠道库存去化慢于预期和消费税改革。
+        </div>
+        <p><a href="https://finance.sina.com.cn/roll/2025-11-07/doc-infwpuac1211709.shtml" target="_blank">[5]</a><a href="https://xueqiu.com/4460184081/330369762" target="_blank">[6]</a></p>
+
+        <hr class="chapter-divider">
+
+        <!-- 第三章 -->
+        <h2 id="ch3">第三章　乳制品行业深度分析</h2>
+
+        <h3>3.1 行业基本面：存量竞争加剧</h3>
+        <p>中国乳制品行业已进入成熟期，人均消费量接近饱和（液态奶人均消费约22kg/年，仅为全球平均的1/3），行业增长主要依赖产品结构升级和品类扩展。2025年液态奶增速约3-4%，低温鲜奶、奶酪、益生菌等高端品类增速超过10%。</p>
+
+        <p>伊利和蒙牛双寡头格局稳定，合计占据全国常温奶市场超过60%的份额。但行业竞争激烈，价格战频繁，毛利持续承压。生鲜乳新国标实施推动行业品质升级，小企业加速出清。</p>
+
+        <div class="table-wrapper">
+            <div class="table-title">表3.1 乳制品龙头核心指标对比</div>
+            <table>
+                <thead><tr><th>公司</th><th>2024营收(亿)</th><th>同比</th><th>毛利率</th><th>净利率</th><th>ROE</th><th>PE(TTM)</th><th>投资逻辑</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>伊利股份</strong></td><td>1,260</td><td class="up">+1.3%</td><td>33.2%</td><td>7.8%</td><td>~20%</td><td>~15x</td><td>龙头护城河，多元化布局</td></tr>
+                    <tr><td><strong>蒙牛乳业</strong></td><td>986</td><td class="down">-0.3%</td><td>36.1%</td><td>5.4%</td><td>~12%</td><td>~12x</td><td>估值低，需等待拐点</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="source">数据来源：公司年报、东方财富网。数据为2024财年。</p>
+
+        <div class="callout">
+            <strong>乳制品行业核心结论：</strong>行业整体增速放缓，但高端化和品类创新（鲜奶、奶酪、特医食品）提供结构性增长机会。伊利作为绝对龙头，估值仅15x处于历史低位，安全边际充足，但需等待需求端拐点。蒙牛管理层换帅后战略调整值得关注。
+        </div>
+
+        <hr class="chapter-divider">
+
+        <!-- 第四章 -->
+        <h2 id="ch4">第四章　调味品行业深度分析</h2>
+
+        <h3>4.1 行业基本面：渠道库存改善，复苏信号初现</h3>
+        <p>调味品行业2024-2025年经历了深度调整期，餐饮渠道恢复不及预期、渠道库存积压、消费降级等多重压力下，行业增速明显放缓。海天味业2025年上半年营收152.30亿元，同比增长7.6%，较前期明显提速，存货同比下降31.3%，渠道库存去化取得显著成效。</p>
+
+        <div class="kpi-grid">
+            <div class="kpi-item"><div class="kpi-label">海天味业2025H1营收</div><div class="kpi-val">152.3亿</div></div>
+            <div class="kpi-item"><div class="kpi-label">同比增长</div><div class="kpi-val">+7.6%</div></div>
+            <div class="kpi-item"><div class="kpi-label">存货变化</div><div class="kpi-val">-31.3%</div></div>
+            <div class="kpi-item"><div class="kpi-label">PE(TTM)</div><div class="kpi-val">35x</div></div>
+            <div class="kpi-item"><div class="kpi-label">市值</div><div class="kpi-val">2471亿</div></div>
+            <div class="kpi-item"><div class="kpi-label">市占率</div><div class="kpi-val">~18%</div></div>
+        </div>
+        <p class="source">数据来源：海天味业2025年中期报告、东方财富网</p>
+
+        <div class="callout success">
+            <strong>调味品行业核心结论：</strong>海天味业渠道库存去化进展顺利，营收增速回升至7.6%，存货大幅下降31.3%，是行业复苏的先行信号。PE 35x虽不算便宜，但考虑到其极强的品牌护城河和渠道网络，估值已回归合理区间。复调品类（蚝油、料酒）和复合调味料是未来增长点。
+        </div>
+        <p><a href="https://finance.sina.com.cn/stock/aigc/stockfs/2025-09-08/doc-infpuwre6014033.shtml" target="_blank">[7]</a><a href="https://data.eastmoney.com/gzfx/detail/603288.html" target="_blank">[8]</a></p>
+
+        <hr class="chapter-divider">
+
+        <!-- 第五章 -->
+        <h2 id="ch5">第五章　休闲食品行业分析</h2>
+
+        <h3>5.1 行业概况：健康化、高端化趋势</h3>
+        <p>休闲食品行业规模约2.5万亿元，增速约5-7%。行业呈现明显的"量缩价升"特征——消费者从追求性价比转向追求品质和健康。零糖零脂、高蛋白、功能性零食等细分赛道保持两位数增长，而传统膨化食品、低端糖果面临持续压力。</p>
+
+        <p>值得关注的是：三只松鼠、良品铺子等新消费品牌已完成从线上到线下的渠道布局，经营效率显著改善。卤制品赛道（绝味食品、周黑鸭）保持稳健增长，但竞争加剧。坚果炒货受原材料价格波动影响较大。</p>
+
+        <div class="callout">
+            <strong>休闲食品核心结论：</strong>行业结构性分化明显，健康化、高端化是确定性趋势。重点关注渠道效率改善和产品创新能力强的标的。卤制品赛道渗透率仍有提升空间，但需警惕加盟商盈利能力下降的风险。
+        </div>
+
+        <hr class="chapter-divider">
+
+        <!-- 第六章 -->
+        <h2 id="ch6">第六章　家电行业深度分析</h2>
+
+        <h3>6.1 行业基本面：以旧换新驱动，龙头强者恒强</h3>
+        <p>中国家电行业2025年在"以旧换新"政策推动下表现亮眼。白电三巨头营收和利润均创历史新高：美的集团营收4585亿元，归母净利润439.5亿元；海尔智家营收首次突破3000亿元；格力电器也实现正增长。出口方面，美的、海尔海外收入占比持续提升，全球化布局成效显著。</p>
+
+        <div class="table-wrapper">
+            <div class="table-title">表6.1 家电三巨头2025年年报核心数据</div>
+            <table>
+                <thead><tr><th>公司</th><th>营收(亿)</th><th>同比</th><th>净利润(亿)</th><th>同比</th><th>毛利率</th><th>ROE</th><th>PE(TTM)</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>美的集团</strong></td><td>4,585</td><td class="up">+10%+</td><td>439.5</td><td class="up">+14%+</td><td>26.5%</td><td>~25%</td><td>~14x</td></tr>
+                    <tr><td><strong>海尔智家</strong></td><td>3,000+</td><td class="up">+8%+</td><td>~260</td><td class="up">+12%+</td><td>28.0%</td><td>~18%</td><td>~13x</td></tr>
+                    <tr><td><strong>格力电器</strong></td><td>~2,100</td><td class="up">+3%+</td><td>~320</td><td class="up">+5%+</td><td>30.2%</td><td>~25%</td><td>~10x</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="source">数据来源：公司2025年年报、证券时报。格力数据为预估。<a href="https://news.qq.com/rain/a/20260401A03P4300" target="_blank">[9]</a><a href="https://k.sina.com.cn/article_7879922977_1d5ae152106801drd2.html" target="_blank">[10]</a></p>
+
+        <div class="callout success">
+            <strong>家电行业核心结论：</strong>美的集团营收和利润断层领先，科技转型（库卡机器人、楼宇科技）构建了第二增长曲线，PE仅14x估值极具吸引力。海尔智家全球化进展最快。格力电器增长最慢但估值最低（PE ~10x），安全边际充足。2026年以旧换新政策续力，行业需求有保障。
+        </div>
+
+        <hr class="chapter-divider">
+
+        <!-- 第七章 -->
+        <h2 id="ch7">第七章　消费电子行业分析</h2>
+
+        <h3>7.1 AI驱动换机周期</h3>
+        <p>消费电子行业正迎来AI驱动的换机周期。AI手机和AI PC的渗透率快速提升，对消费者换机需求形成明显拉动。华为Mate 70系列、苹果iPhone 16系列均搭载AI功能，市场反馈积极。但整体消费电子市场仍面临需求疲软的挑战，低端市场萎缩明显。</p>
+
+        <p>全球智能手机出货量2025年约12.2亿部，同比小幅增长2-3%。中国市场表现分化，华为强势回归挤压了部分安卓品牌份额。VR/AR设备、智能手表等可穿戴设备保持较快增长。</p>
+
+        <div class="callout info">
+            <strong>消费电子核心结论：</strong>AI功能是驱动换机的核心变量，但消费者对AI手机的付费意愿仍需验证。供应链环节（光学镜头、射频器件）的投资机会值得关注。建议关注AI渗透率提升带来的零部件升级需求。
+        </div>
+
+        <hr class="chapter-divider">
+
+        <!-- 第八章 -->
+        <h2 id="ch8">第八章　美妆个护与服装行业分析</h2>
+
+        <h3>8.1 国货崛起</h3>
+        <p>中国美妆市场规模约5000亿元，增速约8-10%。国货品牌崛起是最大趋势：珀莱雅、薇诺娜（贝泰妮）、韩束（上美股份）等国产品牌在功效护肤领域持续抢占外资品牌份额。抖音、小红书等社交电商渠道是国货品牌的核心增长引擎。</p>
+
+        <p>服装行业持续面临消费降级压力，运动休闲赛道表现最佳。安踏体育超越耐克成为中国市场第一，国潮运动品牌持续获得年轻消费者青睐。</p>
+
+        <div class="callout">
+            <strong>美妆服装核心结论：</strong>美妆国货崛起是不可逆的趋势，重点关注在功效护肤和彩妆品类建立品牌认知的龙头。服装行业聚焦运动休闲赛道，消费降级下性价比品牌受益。
+        </div>
+
+        <hr class="chapter-divider">
+
+        <!-- 第九章 -->
+        <h2 id="ch9">第九章　电商零售与新消费品牌</h2>
+
+        <h3>9.1 电商格局演变</h3>
+        <p>中国电商格局持续演变。传统三大平台中，拼多多凭借极致性价比持续抢占下沉市场用户。直播电商（抖音电商、快手电商）保持高速增长，2025年GMV增速超过30%。跨境电商方面，Temu、SHEIN在海外市场快速扩张，但也面临越来越大的监管压力。</p>
+
+        <p>新消费品牌方面，元气森林、泡泡玛特、喜茶等品牌经历了从爆发到理性的过程。部分品牌通过产品力和渠道能力实现了可持续增长，而更多品牌在资本退潮后面临生存挑战。消费降级背景下，性价比和新奇特体验是新消费品牌突围的核心。</p>
+
+        <div class="callout">
+            <strong>电商零售核心结论：</strong>拼多多仍是最具增长确定性的电商平台。直播电商持续侵蚀传统货架电商份额，抖音电商内容化电商模式的优势越来越明显。新消费品牌建议关注现金流健康、已实现盈利的公司。
+        </div>
+
+        <hr class="chapter-divider">
+
+        <!-- 第十章 -->
+        <h2 id="ch10">第十章　财务对比、估值分析与投资策略</h2>
+
+        <h3>10.1 十大龙头综合财务对比</h3>
+
+        <div class="table-wrapper">
+            <div class="table-title">表10.1 消费品行业十大龙头核心指标对比（2024年/最新数据）</div>
+            <table>
+                <thead>
+                    <tr><th>公司</th><th>行业</th><th>营收(亿)</th><th>净利(亿)</th><th>毛利率</th><th>ROE</th><th>PE(TTM)</th><th>评级</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>贵州茅台</td><td>白酒</td><td>1,709</td><td>862</td><td>91.5%</td><td>35%</td><td>~22x</td><td><span class="tag green">买入</span></td></tr>
+                    <tr><td>五粮液</td><td>白酒</td><td>832</td><td>311</td><td>75.5%</td><td>25%</td><td>~17x</td><td><span class="tag green">买入</span></td></tr>
+                    <tr><td>山西汾酒</td><td>白酒</td><td>313</td><td>104</td><td>76.2%</td><td>32%</td><td>~22x</td><td><span class="tag">增持</span></td></tr>
+                    <tr><td>泸州老窖</td><td>白酒</td><td>285</td><td>102</td><td>86.2%</td><td>30%</td><td>~15x</td><td><span class="tag green">买入</span></td></tr>
+                    <tr><td>伊利股份</td><td>乳制品</td><td>1,260</td><td>98</td><td>33.2%</td><td>20%</td><td>~15x</td><td><span class="tag">增持</span></td></tr>
+                    <tr><td>海天味业</td><td>调味品</td><td>317</td><td>68</td><td>36.5%</td><td>22%</td><td>~35x</td><td><span class="tag">增持</span></td></tr>
+                    <tr><td>美的集团</td><td>家电</td><td>4,585</td><td>440</td><td>26.5%</td><td>25%</td><td>~14x</td><td><span class="tag green">买入</span></td></tr>
+                    <tr><td>海尔智家</td><td>家电</td><td>3,000+</td><td>260</td><td>28.0%</td><td>18%</td><td>~13x</td><td><span class="tag green">买入</span></td></tr>
+                    <tr><td>格力电器</td><td>家电</td><td>~2,100</td><td>~320</td><td>30.2%</td><td>25%</td><td>~10x</td><td><span class="tag">持有</span></td></tr>
+                    <tr><td>珀莱雅</td><td>美妆</td><td>~98</td><td>~15</td><td>70%</td><td>~20%</td><td>~25x</td><td><span class="tag">增持</span></td></tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="source">数据来源：各公司2024年年报、东方财富网、雪球网。PE为2026年4月近似值，实际以最新股价为准。</p>
+
+        <h3>10.2 估值分析</h3>
+        <div class="chart-container">
+            <div class="chart-title">图10.1 十大消费品龙头PE(TTM)估值分布</div>
+            <svg viewBox="0 0 800 260" xmlns="http://www.w3.org/2000/svg">
+                <line x1="100" y1="220" x2="750" y2="220" stroke="#2a3f5f" stroke-width="1"/>
+                <text x="50" y="224" fill="#64748b" font-size="10" text-anchor="end">0x</text>
+                <text x="200" y="224" fill="#64748b" font-size="10" text-anchor="middle">10x</text>
+                <text x="350" y="224" fill="#64748b" font-size="10" text-anchor="middle">20x</text>
+                <text x="500" y="224" fill="#64748b" font-size="10" text-anchor="middle">30x</text>
+                <text x="650" y="224" fill="#64748b" font-size="10" text-anchor="middle">40x</text>
+                <line x1="200" y1="40" x2="200" y2="225" stroke="#1e3050" stroke-width="0.5" stroke-dasharray="4"/>
+                <line x1="350" y1="40" x2="350" y2="225" stroke="#1e3050" stroke-width="0.5" stroke-dasharray="4"/>
+                <line x1="500" y1="40" x2="500" y2="225" stroke="#1e3050" stroke-width="0.5" stroke-dasharray="4"/>
+                <!-- 格力 10x -->
+                <rect x="55" y="180" width="60" height="30" rx="4" fill="rgba(34,197,94,0.7)"/><text x="85" y="200" fill="#fff" font-size="10" text-anchor="middle">10x</text>
+                <text x="85" y="175" fill="#94a3b8" font-size="9" text-anchor="middle">格力</text>
+                <!-- 海尔 13x -->
+                <rect x="130" y="165" width="60" height="45" rx="4" fill="rgba(34,197,94,0.6)"/><text x="160" y="192" fill="#fff" font-size="10" text-anchor="middle">13x</text>
+                <text x="160" y="160" fill="#94a3b8" font-size="9" text-anchor="middle">海尔</text>
+                <!-- 伊利 15x -->
+                <rect x="205" y="150" width="60" height="60" rx="4" fill="rgba(34,197,94,0.5)"/><text x="235" y="184" fill="#fff" font-size="10" text-anchor="middle">15x</text>
+                <text x="235" y="145" fill="#94a3b8" font-size="9" text-anchor="middle">伊利</text>
+                <!-- 美的 14x -->
+                <rect x="280" y="155" width="60" height="55" rx="4" fill="rgba(34,197,94,0.55)"/><text x="310" y="187" fill="#fff" font-size="10" text-anchor="middle">14x</text>
+                <text x="310" y="150" fill="#94a3b8" font-size="9" text-anchor="middle">美的</text>
+                <!-- 泸州 15x -->
+                <rect x="355" y="150" width="60" height="60" rx="4" fill="rgba(34,197,94,0.5)"/><text x="385" y="184" fill="#fff" font-size="10" text-anchor="middle">15x</text>
+                <text x="385" y="145" fill="#94a3b8" font-size="9" text-anchor="middle">泸州老窖</text>
+                <!-- 茅台 22x -->
+                <rect x="430" y="120" width="60" height="90" rx="4" fill="rgba(59,130,246,0.5)"/><text x="460" y="169" fill="#fff" font-size="10" text-anchor="middle">22x</text>
+                <text x="460" y="115" fill="#94a3b8" font-size="9" text-anchor="middle">茅台</text>
+                <!-- 汾酒 22x -->
+                <rect x="505" y="120" width="60" height="90" rx="4" fill="rgba(59,130,246,0.5)"/><text x="535" y="169" fill="#fff" font-size="10" text-anchor="middle">22x</text>
+                <text x="535" y="115" fill="#94a3b8" font-size="9" text-anchor="middle">汾酒</text>
+                <!-- 珀莱雅 25x -->
+                <rect x="580" y="100" width="60" height="110" rx="4" fill="rgba(59,130,246,0.6)"/><text x="610" y="159" fill="#fff" font-size="10" text-anchor="middle">25x</text>
+                <text x="610" y="95" fill="#94a3b8" font-size="9" text-anchor="middle">珀莱雅</text>
+                <!-- 五粮液 17x -->
+                <rect x="655" y="140" width="60" height="70" rx="4" fill="rgba(34,197,94,0.55)"/><text x="685" y="179" fill="#fff" font-size="10" text-anchor="middle">17x</text>
+                <text x="685" y="135" fill="#94a3b8" font-size="9" text-anchor="middle">五粮液</text>
+                <!-- 海天 35x -->
+                <rect x="700" y="65" width="60" height="145" rx="4" fill="rgba(245,158,11,0.5)"/><text x="730" y="143" fill="#fff" font-size="10" text-anchor="middle">35x</text>
+                <text x="730" y="60" fill="#f59e0b" font-size="9" text-anchor="middle">海天</text>
+                <!-- Legend -->
+                <rect x="100" y="20" width="12" height="12" rx="2" fill="rgba(34,197,94,0.6)"/><text x="118" y="31" fill="#94a3b8" font-size="10">PE &lt;20x (低估)</text>
+                <rect x="230" y="20" width="12" height="12" rx="2" fill="rgba(59,130,246,0.6)"/><text x="248" y="31" fill="#94a3b8" font-size="10">PE 20-25x (合理)</text>
+                <rect x="380" y="20" width="12" height="12" rx="2" fill="rgba(245,158,11,0.6)"/><text x="398" y="31" fill="#94a3b8" font-size="10">PE &gt;25x (偏高)</text>
+            </svg>
+        </div>
+
+        <h3>10.3 投资策略与建议</h3>
+
+        <div class="table-wrapper">
+            <div class="table-title">表10.2 投资策略矩阵</div>
+            <table>
+                <thead><tr><th>策略类型</th><th>标的</th><th>核心逻辑</th><th>风险</th></tr></thead>
+                <tbody>
+                    <tr>
+                        <td><span class="tag green">确定性首选</span></td>
+                        <td>贵州茅台</td>
+                        <td>高端白酒最强确定性，毛利率91.5%，直销占比提升优化盈利</td>
+                        <td>消费税改革风险</td>
+                    </tr>
+                    <tr>
+                        <td><span class="tag green">高性价比</span></td>
+                        <td>美的集团</td>
+                        <td>PE仅14x，科技转型构建第二曲线，全球化布局领先</td>
+                        <td>全球贸易摩擦</td>
+                    </tr>
+                    <tr>
+                        <td><span class="tag green">估值洼地</span></td>
+                        <td>泸州老窖、格力电器</td>
+                        <td>PE仅15x/10x，龙头地位稳固，安全边际充足</td>
+                        <td>增长动能不足</td>
+                    </tr>
+                    <tr>
+                        <td><span class="tag">弹性选择</span></td>
+                        <td>山西汾酒</td>
+                        <td>全国化扩张最快，省外收入占比突破55%，业绩弹性大</td>
+                        <td>竞争加剧风险</td>
+                    </tr>
+                    <tr>
+                        <td><span class="tag">左侧布局</span></td>
+                        <td>伊利股份、海天味业</td>
+                        <td>绝对龙头，估值处于历史低位，等待需求拐点</td>
+                        <td>需求复苏时间不确定</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3>10.4 风险提示</h3>
+        <div class="callout danger">
+            <strong>核心风险：</strong>
+            <ol style="margin-left: 1.2rem; margin-top: 0.5rem;">
+                <li><strong>需求复苏不及预期：</strong>居民消费意愿持续低迷，预防性储蓄率62.9%，房地产下行压制消费信心。</li>
+                <li><strong>政策风险：</strong>消费税改革（征收环节后移）可能影响白酒、化妆品等行业。</li>
+                <li><strong>竞争格局恶化：</strong>部分细分赛道（乳制品、调味品）价格战加剧，压缩盈利空间。</li>
+                <li><strong>估值风险：</strong>部分标的PE仍处历史中高位（海天35x），若业绩不及预期存在杀估值风险。</li>
+                <li><strong>外部环境：</strong>中美贸易摩擦升级、人民币汇率波动影响出口型消费品企业。</li>
+                <li><strong>数据风险：</strong>本报告部分数据为模型推演或公开信息整理，非全部来自官方年报，请以公司正式公告为准。</li>
+            </ol>
+        </div>
+
+        <div class="callout">
+            <strong>免责声明：</strong>本报告仅供参考，不构成任何投资建议。报告中的观点、数据和预测基于公开信息整理，投资者应独立判断并自行承担风险。过往表现不代表未来收益，市场有风险，投资需谨慎。
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>&copy; 2026 投研助手 | 本报告由AI投研系统生成，仅供参考</p>
+        <p>数据来源：国家统计局、商务部、各公司年报、东方财富网、雪球网、新浪财经</p>
+        <p>GitHub: <a href="https://github.com/jinyanghe1/investment-research-assistant" style="color: var(--accent-blue);">jinyanghe1/investment-research-assistant</a></p>
+    </div>
+</body>
+</html>
